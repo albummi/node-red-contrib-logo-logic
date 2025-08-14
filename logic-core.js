@@ -1,6 +1,3 @@
-
----
-
 # Gemeinsame Logik: `logic-core.js`
 ```javascript
 // Gemeinsamer Core für alle LOGO-Logik-Nodes
