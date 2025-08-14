@@ -3,59 +3,62 @@ module.exports = function(RED) {
         RED.nodes.createNode(this, config);
         const node = this;
 
-        let state = !!config.initState;
-        let timer = null;
+        node.name = config.name;
+        node.setField = config.setField || "payload";
+        node.setOperator = config.setOperator || "=";
+        node.setValue = config.setValue || "true";
+
+        node.resetField = config.resetField || "payload";
+        node.resetOperator = config.resetOperator || "=";
+        node.resetValue = config.resetValue || "false";
+
+        node.emitOnChange = config.emitOnChange !== false;
+        node.forceResetTime = parseInt(config.forceResetTime) || 0;
+        node.resetPriority = config.resetPriority || false;
+        node.state = config.initState || false;
+
+        let resetTimer = null;
+
+        function compare(val, operator, cmpVal) {
+            // boolean handling
+            if (cmpVal === "true" || cmpVal === true) cmpVal = true;
+            else if (cmpVal === "false" || cmpVal === false) cmpVal = false;
+            // numeric handling
+            else if (!isNaN(cmpVal) && cmpVal !== "") cmpVal = Number(cmpVal);
+
+            if (operator === "=") return val === cmpVal;
+            if (operator === "!=") return val !== cmpVal;
+            return false;
+        }
 
         node.on('input', function(msg) {
-            let setCondition = false;
-            let resetCondition = false;
+            let setCondition = compare(msg[node.setField], node.setOperator, node.setValue);
+            let resetCondition = compare(msg[node.resetField], node.resetOperator, node.resetValue);
 
-            try {
-                setCondition = eval(config.setCondition);
-            } catch(e) {
-                node.error("Fehler in Set-Bedingung: " + e.message);
+            let prevState = node.state;
+
+            if (node.resetPriority && resetCondition) {
+                node.state = false;
+            } else if (setCondition && !resetCondition) {
+                node.state = true;
+            } else if (resetCondition && !setCondition) {
+                node.state = false;
             }
 
-            try {
-                resetCondition = eval(config.resetCondition);
-            } catch(e) {
-                node.error("Fehler in Reset-Bedingung: " + e.message);
+            if (node.forceResetTime > 0 && node.state) {
+                clearTimeout(resetTimer);
+                resetTimer = setTimeout(() => {
+                    node.state = false;
+                    if (!node.emitOnChange || prevState !== node.state) {
+                        node.send({ payload: node.state });
+                    }
+                }, node.forceResetTime * 1000);
             }
 
-            if (setCondition && resetCondition) {
-                if (config.resetPriority) {
-                    state = false;
-                } else {
-                    state = true;
-                }
-            } else if (setCondition) {
-                state = true;
-                if (config.forceResetTime > 0) {
-                    if (timer) clearTimeout(timer);
-                    timer = setTimeout(() => {
-                        state = false;
-                        node.send({payload: state});
-                    }, config.forceResetTime * 1000);
-                }
-            } else if (resetCondition) {
-                state = false;
-                if (timer) {
-                    clearTimeout(timer);
-                    timer = null;
-                }
-            }
-
-            if (config.emitOnChange) {
-                if (msg.payload !== state) {
-                    msg.payload = state;
-                    node.send(msg);
-                }
-            } else {
-                msg.payload = state;
-                node.send(msg);
+            if (!node.emitOnChange || prevState !== node.state) {
+                node.send({ payload: node.state });
             }
         });
     }
-
     RED.nodes.registerType("logo-rs", LogoRSNode);
 }

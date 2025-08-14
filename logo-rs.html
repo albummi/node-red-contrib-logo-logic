@@ -4,70 +4,65 @@
     <input type="text" id="node-input-name" placeholder="LOGO RS">
   </div>
 
+  <div class="form-row"><b>Set-Bedingung</b></div>
   <div class="form-row">
-    <label for="node-input-setCondition"><i class="fa fa-play"></i> Set-Bedingung</label>
-    <input type="text" id="node-input-setCondition" placeholder="msg.set === true">
+    <label>Feldname</label>
+    <input type="text" id="node-input-setField" placeholder="payload">
+  </div>
+  <div class="form-row">
+    <label>Operator</label>
+    <select id="node-input-setOperator">
+      <option value="=">=</option>
+      <option value="!=">!=</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label>Wert</label>
+    <input type="text" id="node-input-setValue" placeholder="true oder beliebiger Wert">
   </div>
 
+  <div class="form-row"><b>Reset-Bedingung</b></div>
   <div class="form-row">
-    <label for="node-input-resetCondition"><i class="fa fa-stop"></i> Reset-Bedingung</label>
-    <input type="text" id="node-input-resetCondition" placeholder="msg.reset === true">
+    <label>Feldname</label>
+    <input type="text" id="node-input-resetField" placeholder="payload">
+  </div>
+  <div class="form-row">
+    <label>Operator</label>
+    <select id="node-input-resetOperator">
+      <option value="=">=</option>
+      <option value="!=">!=</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label>Wert</label>
+    <input type="text" id="node-input-resetValue" placeholder="false oder beliebiger Wert">
   </div>
 
   <div class="form-row">
     <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
     <input type="checkbox" id="node-input-emitOnChange" checked>
   </div>
-
   <div class="form-row">
     <label><i class="fa fa-clock-o"></i> Force Reset Timer (s, 0 = aus)</label>
     <input type="number" id="node-input-forceResetTime" min="0" value="0">
   </div>
-
   <div class="form-row">
     <label><i class="fa fa-exchange"></i> Reset priorisiert bei gleichzeitigem Set/Reset</label>
     <input type="checkbox" id="node-input-resetPriority">
   </div>
-
   <div class="form-row">
     <label><i class="fa fa-power-off"></i> Initialstatus (True = Set)</label>
     <input type="checkbox" id="node-input-initState">
   </div>
-
-  <div class="form-tips">
-    Set- und Reset-Bedingungen können JavaScript-Ausdrücke sein, z. B.:  
-    <code>msg.payload === 1</code> oder <code>msg.topic === 'reset'</code>
-  </div>
 </script>
 
 <script type="text/x-red" data-help-name="logo-rs">
-  <p>RS-Flipflop im LOGO-Stil mit flexiblen Set/Reset-Bedingungen:</p>
+  <p>RS-Flipflop im LOGO-Stil mit flexibler Bedingungskonfiguration:</p>
   <ul>
-    <li><b>Set-Bedingung</b>: JavaScript-Ausdruck, der <code>true</code> sein muss, um Ausgang auf True zu setzen</li>
-    <li><b>Reset-Bedingung</b>: JavaScript-Ausdruck, der <code>true</code> sein muss, um Ausgang auf False zu setzen</li>
-    <li><b>Force Reset Timer</b>: Setzt Ausgang nach X Sekunden automatisch zurück</li>
-    <li><b>Priorität</b>: Bestimmt, ob Reset Vorrang hat bei gleichzeitigem Set & Reset</li>
+    <li>Für <b>Set</b> und <b>Reset</b> kann Feldname, Operator und Wert frei definiert werden</li>
+    <li>Unterstützt <code>=</code> und <code>!=</code></li>
+    <li>Wert wird als String, Zahl oder Boolean ausgewertet</li>
+    <li>Optionaler Force Reset Timer</li>
+    <li>Option "Nur bei Zustandsänderung senden"</li>
   </ul>
-</script>
-
-<script type="text/javascript">
-    RED.nodes.registerType("logo-rs", {
-        category: "logo",
-        color: "#E2D96E",
-        defaults: {
-            name: {value:""},
-            setCondition: {value:"msg.set === true"},
-            resetCondition: {value:"msg.reset === true"},
-            emitOnChange: {value:true},
-            forceResetTime: {value:0},
-            resetPriority: {value:false},
-            initState: {value:false}
-        },
-        inputs: 1,
-        outputs: 1,
-        icon: "function.png",
-        label: function() {
-            return this.name || "RS";
-        }
-    });
 </script>
