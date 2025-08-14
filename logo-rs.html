@@ -1,48 +1,44 @@
 <script type="text/javascript">
-    RED.nodes.registerType('RS',{
+    RED.nodes.registerType('RS', {
         category: 'function',
         color: '#a6bbcf',
         defaults: {
-            name: {value:""},
-            forceResetTime: {value:0},
-            resetPriority: {value:false},
-            initStatus: {value:false},
-            emitOnChange: {value:true}
+            name: { value: "" },
+            initState: { value: "false" },
+            forceResetTime: { value: 0 },
+            resetPriority: { value: "true" }
         },
-        inputs:2,
-        outputs:1,
+        inputs: 1,
+        outputs: 1,
         icon: "switch.png",
         label: function() {
-            return this.name||"RS";
+            return this.name || "RS";
         },
         oneditprepare: function() {
-            $("#node-input-forceResetTime").spinner({
-                min: 0,
-                step: 1
-            });
+            $("#node-input-initState").val(this.initState);
+            $("#node-input-forceResetTime").val(this.forceResetTime);
+            $("#node-input-resetPriority").val(this.resetPriority);
         }
     });
 </script>
 
 <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name der Node">
+    <label for="node-input-initState"><i class="fa fa-toggle-on"></i> Initial State</label>
+    <select id="node-input-initState" style="width: 100%;">
+        <option value="true">True</option>
+        <option value="false">False</option>
+    </select>
 </div>
 
 <div class="form-row">
-    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Zeit (s)</label>
-    <input type="number" id="node-input-forceResetTime" min="0" value="0">
-    <p class="form-tips">Zeit nach der der Ausgang automatisch zurückgesetzt wird (0 = deaktiviert)</p>
+    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (s)</label>
+    <input type="number" id="node-input-forceResetTime" style="width: 100%;" />
 </div>
 
 <div class="form-row">
-    <label for="node-input-resetPriority"><i class="fa fa-arrows-v"></i> Reset priorisieren</label>
-    <input type="checkbox" id="node-input-resetPriority">
-    <p class="form-tips">Wenn sowohl Set als auch Reset True sind, wird Reset priorisiert</p>
-</div>
-
-<div class="form-row">
-    <label for="node-input-initStatus"><i class="fa fa-power-off"></i> Initialstatus</label>
-    <input type="checkbox" id="node-input-initStatus">
-    <p class="form-tips">Ausgang beim Start initial auf True setzen</p>
+    <label for="node-input-resetPriority"><i class="fa fa-exchange"></i> Reset Priority</label>
+    <select id="node-input-resetPriority" style="width: 100%;">
+        <option value="true">Reset priorisiert</option>
+        <option value="false">Set priorisiert</option>
+    </select>
 </div>
