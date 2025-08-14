@@ -41,4 +41,21 @@ module.exports = function(RED) {
                 state = false;
                 if (timer) {
                     clearTimeout(timer);
-                    timer =
+                    timer = null;
+                }
+            }
+
+            if (config.emitOnChange) {
+                if (msg.payload !== state) {
+                    msg.payload = state;
+                    node.send(msg);
+                }
+            } else {
+                msg.payload = state;
+                node.send(msg);
+            }
+        });
+    }
+
+    RED.nodes.registerType("logo-rs", LogoRSNode);
+}
