@@ -8,10 +8,6 @@
     <input type="number" id="node-input-inputsCount" min="2" max="8">
   </div>
   <div class="form-row">
-    <label for="node-input-memoryTime"><i class="fa fa-clock-o"></i> Speicherzeit (Sek.)</label>
-    <input type="number" id="node-input-memoryTime" min="0" step="0.1">
-  </div>
-  <div class="form-row">
     <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
     <input type="checkbox" id="node-input-emitOnChange" checked>
   </div>
@@ -20,7 +16,7 @@
     <div id="negate-container"></div>
   </div>
   <div class="form-tips">
-    Eingänge werden über <code>msg.topic = "1" | "2" | ...</code> adressiert. Payload wird zu Boolean konvertiert.
+    Eingänge werden über <code>msg.topic = "1" | "2" | ...</code> adressiert. Payload wird zu Boolean konvertiert. Bei einem Node der getrette Ausgänge für True & False hat müssen beide Ausgänge mit dem AND Node als Eingang verbunden werden.
   </div>
 </script>
 
