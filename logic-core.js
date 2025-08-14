@@ -1,28 +1,54 @@
 module.exports = function makeLogoLogicNode(RED, { typeName, displayName, computeResult }) {
-    return function (config) {
+    return function(config) {
         RED.nodes.createNode(this, config);
         const node = this;
 
-        const inputsCount = parseInt(config.inputs) || 2;
-        const memoryTimeSec = parseFloat(config.memoryTime) || 0;
-        const memoryTimeMs = memoryTimeSec * 1000;
+        // Konfiguration
+        const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
+        const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.map(Boolean) : [];
+        const emitOnChange = config.emitOnChange !== false; // default: true
 
-        // interner Zustand
+        // Zustand je Eingang
         let states = Array(inputsCount).fill(false);
-        let memoryTimers = Array(inputsCount).fill(null);
+        let lastOutput = undefined;
 
-        // Hilfsfunktionen
-        function toBool(val) {
-            if (val === true || val === "true" || val === 1 || val === "1") return true;
-            return false;
+        // Helper: Payload → Boolean
+        function toBool(v) {
+            if (typeof v === "boolean") return v;
+            if (typeof v === "number") return v !== 0;
+            if (typeof v === "string") {
+                const s = v.trim().toLowerCase();
+                if (["true", "on", "1", "open", "hoch", "an"].includes(s)) return true;
+                if (["false", "off", "0", "closed", "zu", "aus"].includes(s)) return false;
+            }
+            return !!v;
         }
 
         function evaluate() {
-            return computeResult(states);
+            const evalInputs = states.map((v, i) => (negateInputs[i] ? !v : v));
+            return computeResult(evalInputs);
+        }
+
+        function updateStatus(result) {
+            const active = states.reduce((a, v) => a + (v ? 1 : 0), 0);
+            node.status({
+                fill: result ? "green" : "grey",
+                shape: "dot",
+                text: `${displayName} · active:${active}/${inputsCount} · out:${result ? "true" : "false"}`
+            });
         }
 
         function emit(result) {
-            node.send({ payload: result });
+            if (emitOnChange) {
+                if (lastOutput !== result) {
+                    lastOutput = result;
+                    node.send({ payload: result });
+                }
+            } else {
+                lastOutput = result;
+                node.send({ payload: result });
+            }
+            updateStatus(result);
         }
 
         node.on("input", (msg, send, done) => {
@@ -30,14 +56,11 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
                 // Reset
                 if (msg.reset === true) {
                     states = Array(inputsCount).fill(false);
-                    memoryTimers.forEach(t => t && clearTimeout(t));
-                    memoryTimers = Array(inputsCount).fill(null);
                     emit(false);
                     if (done) done();
                     return;
                 }
 
-                // Index des Eingangs
                 let idx = undefined;
                 if (msg.topic !== undefined) {
                     const n = parseInt(msg.topic, 10);
@@ -49,29 +72,10 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
                     return;
                 }
 
-                const val = toBool(msg.payload);
+                // Eingang setzen
+                states[idx] = toBool(msg.payload);
 
-                if (val) {
-                    states[idx] = true;
-
-                    // Timer starten, wenn memoryTime > 0
-                    if (memoryTimeMs > 0) {
-                        if (memoryTimers[idx]) clearTimeout(memoryTimers[idx]);
-                        memoryTimers[idx] = setTimeout(() => {
-                            states[idx] = false;
-                            memoryTimers[idx] = null;
-                            const result = evaluate();
-                            emit(result);
-                        }, memoryTimeMs);
-                    }
-                } else {
-                    states[idx] = false;
-                    if (memoryTimers[idx]) {
-                        clearTimeout(memoryTimers[idx]);
-                        memoryTimers[idx] = null;
-                    }
-                }
-
+                // Ergebnis berechnen und senden
                 const result = evaluate();
                 emit(result);
 
@@ -82,8 +86,6 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
             }
         });
 
-        node.on("close", () => {
-            memoryTimers.forEach(t => t && clearTimeout(t));
-        });
+        updateStatus(false);
     };
 };
