@@ -1,61 +1,44 @@
 module.exports = function(RED) {
-
-    function RSNode(config) {
+    function LogoRSNode(config) {
         RED.nodes.createNode(this, config);
         const node = this;
 
-        // Konfiguration
-        const initState = config.initState === true || config.initState === 'true';
-        const forceResetTime = parseInt(config.forceResetTime || 0, 10); // in Sekunden
-        const resetPriority = (config.resetPriority === true || config.resetPriority === 'true');
+        let state = !!config.initState;
+        let timer = null;
 
-        let output = initState;
-        let resetTimer = null;
+        node.on('input', function(msg) {
+            let setCondition = false;
+            let resetCondition = false;
 
-        function updateStatus() {
-            node.status({
-                fill: output ? "green" : "grey",
-                shape: "dot",
-                text: `RS · ${output ? "Set" : "Reset"}`
-            });
-        }
-
-        function emit() {
-            node.send({ payload: output });
-            updateStatus();
-        }
-
-        node.on("input", (msg, send, done) => {
             try {
-                const setInput = msg.set === true;
-                const resetInput = msg.reset === true;
-
-                if (setInput && resetInput) {
-                    output = resetPriority ? false : true;
-                } else if (setInput) {
-                    output = true;
-                } else if (resetInput) {
-                    output = false;
-                    if (forceResetTime > 0) {
-                        if (resetTimer) clearTimeout(resetTimer);
-                        resetTimer = setTimeout(() => {
-                            output = false;
-                            emit();
-                        }, forceResetTime * 1000);
-                    }
-                }
-
-                emit();
-
-                if (done) done();
-            } catch (err) {
-                node.error(err, msg);
-                if (done) done(err);
+                setCondition = eval(config.setCondition);
+            } catch(e) {
+                node.error("Fehler in Set-Bedingung: " + e.message);
             }
-        });
 
-        updateStatus();
-    }
+            try {
+                resetCondition = eval(config.resetCondition);
+            } catch(e) {
+                node.error("Fehler in Reset-Bedingung: " + e.message);
+            }
 
-    RED.nodes.registerType("logo-rs", RSNode);
-};
+            if (setCondition && resetCondition) {
+                if (config.resetPriority) {
+                    state = false;
+                } else {
+                    state = true;
+                }
+            } else if (setCondition) {
+                state = true;
+                if (config.forceResetTime > 0) {
+                    if (timer) clearTimeout(timer);
+                    timer = setTimeout(() => {
+                        state = false;
+                        node.send({payload: state});
+                    }, config.forceResetTime * 1000);
+                }
+            } else if (resetCondition) {
+                state = false;
+                if (timer) {
+                    clearTimeout(timer);
+                    timer =

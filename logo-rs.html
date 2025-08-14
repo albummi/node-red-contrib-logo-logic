@@ -3,33 +3,48 @@
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="LOGO RS">
   </div>
+
+  <div class="form-row">
+    <label for="node-input-setCondition"><i class="fa fa-play"></i> Set-Bedingung</label>
+    <input type="text" id="node-input-setCondition" placeholder="msg.set === true">
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-resetCondition"><i class="fa fa-stop"></i> Reset-Bedingung</label>
+    <input type="text" id="node-input-resetCondition" placeholder="msg.reset === true">
+  </div>
+
   <div class="form-row">
     <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
     <input type="checkbox" id="node-input-emitOnChange" checked>
   </div>
+
   <div class="form-row">
     <label><i class="fa fa-clock-o"></i> Force Reset Timer (s, 0 = aus)</label>
     <input type="number" id="node-input-forceResetTime" min="0" value="0">
   </div>
+
   <div class="form-row">
     <label><i class="fa fa-exchange"></i> Reset priorisiert bei gleichzeitigem Set/Reset</label>
     <input type="checkbox" id="node-input-resetPriority">
   </div>
+
   <div class="form-row">
     <label><i class="fa fa-power-off"></i> Initialstatus (True = Set)</label>
     <input type="checkbox" id="node-input-initState">
   </div>
+
   <div class="form-tips">
-    Verwendet <code>msg.set = true</code> für Set, <code>msg.reset = true</code> für Reset. Alle anderen Felder sind optional konfigurativ.
+    Set- und Reset-Bedingungen können JavaScript-Ausdrücke sein, z. B.:  
+    <code>msg.payload === 1</code> oder <code>msg.topic === 'reset'</code>
   </div>
 </script>
 
 <script type="text/x-red" data-help-name="logo-rs">
-  <p>RS-Flipflop im LOGO-Stil mit optionalem Timer und Priorisierung:</p>
+  <p>RS-Flipflop im LOGO-Stil mit flexiblen Set/Reset-Bedingungen:</p>
   <ul>
-    <li><b>Set</b>: <code>msg.set = true</code> schaltet Ausgang auf True</li>
-    <li><b>Reset</b>: <code>msg.reset = true</code> schaltet Ausgang auf False</li>
-    <li><b>Initialstatus</b>: Ausgang bei Start auf True oder False</li>
+    <li><b>Set-Bedingung</b>: JavaScript-Ausdruck, der <code>true</code> sein muss, um Ausgang auf True zu setzen</li>
+    <li><b>Reset-Bedingung</b>: JavaScript-Ausdruck, der <code>true</code> sein muss, um Ausgang auf False zu setzen</li>
     <li><b>Force Reset Timer</b>: Setzt Ausgang nach X Sekunden automatisch zurück</li>
     <li><b>Priorität</b>: Bestimmt, ob Reset Vorrang hat bei gleichzeitigem Set & Reset</li>
   </ul>
@@ -41,6 +56,8 @@
         color: "#E2D96E",
         defaults: {
             name: {value:""},
+            setCondition: {value:"msg.set === true"},
+            resetCondition: {value:"msg.reset === true"},
             emitOnChange: {value:true},
             forceResetTime: {value:0},
             resetPriority: {value:false},
