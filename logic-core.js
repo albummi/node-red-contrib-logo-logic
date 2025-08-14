@@ -6,12 +6,6 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
     const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
     const emitOnChange = config.emitOnChange !== false;
 
-    const inputFields = Array.isArray(config.inputFields) ? config.inputFields.slice(0, inputsCount)
-                      : (config.inputFields ? [config.inputFields] : new Array(inputsCount).fill("payload"));
-    const inputValues = Array.isArray(config.inputValues) ? config.inputValues.slice(0, inputsCount)
-                      : (config.inputValues ? [config.inputValues] : new Array(inputsCount).fill(""));
-    const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.slice(0, inputsCount)
-                      : (config.negateInputs ? config.negateInputs.map(Boolean).slice(0, inputsCount) : new Array(inputsCount).fill(false));
 
     while (inputFields.length < inputsCount) inputFields.push("payload");
     while (inputValues.length < inputsCount) inputValues.push("");
