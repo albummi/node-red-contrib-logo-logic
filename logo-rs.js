@@ -5,9 +5,9 @@ module.exports = function(RED) {
         const node = this;
 
         // Konfiguration
-        const initState = config.initState === "true";
+        const initState = config.initState === true || config.initState === 'true';
         const forceResetTime = parseInt(config.forceResetTime || 0, 10); // in Sekunden
-        const resetPriority = config.resetPriority === "true"; // true = Reset priorisiert
+        const resetPriority = (config.resetPriority === true || config.resetPriority === 'true');
 
         let output = initState;
         let resetTimer = null;
@@ -16,7 +16,7 @@ module.exports = function(RED) {
             node.status({
                 fill: output ? "green" : "grey",
                 shape: "dot",
-                text: `RS · Set:${output}`
+                text: `RS · ${output ? "Set" : "Reset"}`
             });
         }
 
@@ -31,7 +31,6 @@ module.exports = function(RED) {
                 const resetInput = msg.reset === true;
 
                 if (setInput && resetInput) {
-                    // Bei beiden Signalen entscheidet resetPriority
                     output = resetPriority ? false : true;
                 } else if (setInput) {
                     output = true;
