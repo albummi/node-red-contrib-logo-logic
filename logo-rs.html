@@ -6,48 +6,76 @@
 
   <div class="form-row"><b>Set-Bedingung</b></div>
   <div class="form-row">
-    <label>Feldname</label>
+    <label for="node-input-setField">Feld (msg.<i>feld</i>)</label>
     <input type="text" id="node-input-setField" placeholder="payload">
   </div>
   <div class="form-row">
-    <label>Operator</label>
+    <label for="node-input-setOperator">Operator</label>
     <select id="node-input-setOperator">
       <option value="=">=</option>
       <option value="!=">!=</option>
     </select>
   </div>
   <div class="form-row">
-    <label>Wert</label>
-    <input type="text" id="node-input-setValue" placeholder="true oder beliebiger Wert">
+    <label for="node-input-setValueType">Wert-Typ</label>
+    <select id="node-input-setValueType">
+      <option value="bool">Boolean</option>
+      <option value="text">Text/Zahl</option>
+    </select>
+  </div>
+  <div class="form-row" id="row-set-bool">
+    <label for="node-input-setValueBool">Wert</label>
+    <select id="node-input-setValueBool">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </select>
+  </div>
+  <div class="form-row" id="row-set-text" style="display:none">
+    <label for="node-input-setValueText">Wert</label>
+    <input type="text" id="node-input-setValueText" placeholder="z. B. 1, on, start">
   </div>
 
-  <div class="form-row"><b>Reset-Bedingung</b></div>
+  <div class="form-row" style="margin-top:8px"><b>Reset-Bedingung</b></div>
   <div class="form-row">
-    <label>Feldname</label>
+    <label for="node-input-resetField">Feld (msg.<i>feld</i>)</label>
     <input type="text" id="node-input-resetField" placeholder="payload">
   </div>
   <div class="form-row">
-    <label>Operator</label>
+    <label for="node-input-resetOperator">Operator</label>
     <select id="node-input-resetOperator">
       <option value="=">=</option>
       <option value="!=">!=</option>
     </select>
   </div>
   <div class="form-row">
-    <label>Wert</label>
-    <input type="text" id="node-input-resetValue" placeholder="false oder beliebiger Wert">
+    <label for="node-input-resetValueType">Wert-Typ</label>
+    <select id="node-input-resetValueType">
+      <option value="bool">Boolean</option>
+      <option value="text">Text/Zahl</option>
+    </select>
+  </div>
+  <div class="form-row" id="row-reset-bool">
+    <label for="node-input-resetValueBool">Wert</label>
+    <select id="node-input-resetValueBool">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </select>
+  </div>
+  <div class="form-row" id="row-reset-text" style="display:none">
+    <label for="node-input-resetValueText">Wert</label>
+    <input type="text" id="node-input-resetValueText" placeholder="z. B. 0, off, stop">
   </div>
 
-  <div class="form-row">
+  <div class="form-row" style="margin-top:8px">
     <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
     <input type="checkbox" id="node-input-emitOnChange" checked>
   </div>
   <div class="form-row">
-    <label><i class="fa fa-clock-o"></i> Force Reset Timer (s, 0 = aus)</label>
+    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (s, 0 = aus)</label>
     <input type="number" id="node-input-forceResetTime" min="0" value="0">
   </div>
   <div class="form-row">
-    <label><i class="fa fa-exchange"></i> Reset priorisiert bei gleichzeitigem Set/Reset</label>
+    <label><i class="fa fa-exchange"></i> Reset priorisiert (bei gleichzeitigem Set/Reset)</label>
     <input type="checkbox" id="node-input-resetPriority">
   </div>
   <div class="form-row">
@@ -57,12 +85,68 @@
 </script>
 
 <script type="text/x-red" data-help-name="logo-rs">
-  <p>RS-Flipflop im LOGO-Stil mit flexibler Bedingungskonfiguration:</p>
+  <p>RS-Flipflop im LOGO-Stil mit frei konfigurierbaren Bedingungen:</p>
   <ul>
-    <li>Für <b>Set</b> und <b>Reset</b> kann Feldname, Operator und Wert frei definiert werden</li>
-    <li>Unterstützt <code>=</code> und <code>!=</code></li>
-    <li>Wert wird als String, Zahl oder Boolean ausgewertet</li>
-    <li>Optionaler Force Reset Timer</li>
-    <li>Option "Nur bei Zustandsänderung senden"</li>
+    <li><b>Set</b>: prüft <code>msg.&lt;Feld&gt;</code> mit <code>=</code> oder <code>!=</code> gegen Boolean bzw. Text/Zahl.</li>
+    <li><b>Reset</b>: analog zu Set.</li>
+    <li><b>Force Reset Timer</b>: setzt nach X Sekunden automatisch wieder auf <code>false</code> (0 = aus).</li>
+    <li><b>Reset priorisiert</b>: Falls Set & Reset gleichzeitig wahr sind, entscheidet diese Option.</li>
+    <li><b>Initialstatus</b>: Ausgangszustand nach Deploy/Neustart.</li>
   </ul>
+</script>
+
+<script type="text/javascript">
+(function(){
+  function toggleRows(prefix, type){
+    if(type === "bool"){
+      $("#row-" + prefix + "-bool").show();
+      $("#row-" + prefix + "-text").hide();
+    } else {
+      $("#row-" + prefix + "-bool").hide();
+      $("#row-" + prefix + "-text").show();
+    }
+  }
+
+  RED.nodes.registerType("logo-rs", {
+    category: "function",
+    color: "#FFCC00",
+    icon: "font-awesome/fa-toggle-on",
+    defaults: {
+      name:            { value: "" },
+
+      setField:        { value: "payload" },
+      setOperator:     { value: "=" },
+      setValueType:    { value: "bool" },        // "bool" | "text"
+      setValueBool:    { value: "true" },        // "true" | "false"
+      setValueText:    { value: "" },
+
+      resetField:      { value: "payload" },
+      resetOperator:   { value: "=" },
+      resetValueType:  { value: "bool" },        // "bool" | "text"
+      resetValueBool:  { value: "false" },       // "true" | "false"
+      resetValueText:  { value: "" },
+
+      emitOnChange:    { value: true },
+      forceResetTime:  { value: 0 },
+      resetPriority:   { value: false },
+      initState:       { value: false }
+    },
+    inputs: 1,
+    outputs: 1,
+    label: function(){ return this.name || "LOGO RS"; },
+    oneditprepare: function(){
+      // initial toggles
+      toggleRows("set",   $("#node-input-setValueType").val()   || "bool");
+      toggleRows("reset", $("#node-input-resetValueType").val() || "bool");
+
+      // change handlers
+      $("#node-input-setValueType").on("change", function(){
+        toggleRows("set", $(this).val());
+      });
+      $("#node-input-resetValueType").on("change", function(){
+        toggleRows("reset", $(this).val());
+      });
+    }
+  });
+})();
 </script>
