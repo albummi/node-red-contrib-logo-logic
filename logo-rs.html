@@ -34,3 +34,23 @@
     <li><b>Priorität</b>: Bestimmt, ob Reset Vorrang hat bei gleichzeitigem Set & Reset</li>
   </ul>
 </script>
+
+<script type="text/javascript">
+    RED.nodes.registerType("logo-rs", {
+        category: "logo",
+        color: "#E2D96E",
+        defaults: {
+            name: {value:""},
+            emitOnChange: {value:true},
+            forceResetTime: {value:0},
+            resetPriority: {value:false},
+            initState: {value:false}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "function.png",
+        label: function() {
+            return this.name || "RS";
+        }
+    });
+</script>
