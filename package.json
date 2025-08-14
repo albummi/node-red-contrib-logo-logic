@@ -18,7 +18,7 @@
       "logo-and": "logo-and.js",
       "logo-nand": "logo-nand.js",
       "logo-or": "logo-or.js",
-      "logo-xor": "logo-xor.js"
+      "logo-xor": "logo-xor.js",
       "logo-rs": "logo-rs.js"
     }
   },
