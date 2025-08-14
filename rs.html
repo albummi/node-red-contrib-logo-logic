@@ -1,0 +1,56 @@
+<script type="text/javascript">
+    RED.nodes.registerType('logo-rs', {
+        category: 'function',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: "" },
+            emitOnChange: { value: true },
+            resetPriority: { value: true },
+            forceResetTime: { value: 0 },
+            initStatus: { value: false }
+        },
+        inputs: 2,
+        outputs: 1,
+        icon: "switch.png",
+        label: function() {
+            return this.name || "RS-Glied";
+        },
+        oneditprepare: function() {
+            $("#node-input-emitOnChange").prop('checked', this.emitOnChange);
+            $("#node-input-resetPriority").prop('checked', this.resetPriority);
+            $("#node-input-forceResetTime").val(this.forceResetTime);
+            $("#node-input-initStatus").prop('checked', this.initStatus);
+        },
+        oneditsave: function() {
+            this.emitOnChange = $("#node-input-emitOnChange").prop('checked');
+            this.resetPriority = $("#node-input-resetPriority").prop('checked');
+            this.forceResetTime = parseFloat($("#node-input-forceResetTime").val()) || 0;
+            this.initStatus = $("#node-input-initStatus").prop('checked');
+        }
+    });
+</script>
+
+<div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name des RS-Gliedes">
+</div>
+
+<div class="form-row">
+    <label for="node-input-emitOnChange"><i class="fa fa-bolt"></i> Nur bei Änderung senden</label>
+    <input type="checkbox" id="node-input-emitOnChange">
+</div>
+
+<div class="form-row">
+    <label for="node-input-resetPriority"><i class="fa fa-exchange"></i> Reset priorisiert</label>
+    <input type="checkbox" id="node-input-resetPriority">
+</div>
+
+<div class="form-row">
+    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (Sekunden, 0=aus)</label>
+    <input type="number" id="node-input-forceResetTime" min="0" step="1">
+</div>
+
+<div class="form-row">
+    <label for="node-input-initStatus"><i class="fa fa-toggle-on"></i> Ausgang initial True</label>
+    <input type="checkbox" id="node-input-initStatus">
+</div>
