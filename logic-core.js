@@ -1,75 +1,101 @@
-module.exports = function makeLogoLogicNode(RED, { typeName, displayName, computeResult, isRSNode }) {
+module.exports = function makeLogoLogicNode(RED, { typeName, displayName }) {
     return function(config) {
         RED.nodes.createNode(this, config);
         const node = this;
 
         // Konfiguration
+        const inputsCount = 2; // RS-Glied immer 2 Eingänge: Set / Reset
         const emitOnChange = config.emitOnChange !== false; // default: true
-        const resetPriority = config.resetPriority === true; // true → Reset priorisiert, false → Set priorisiert
-        const initStatus = config.initStatus === true; // true → Ausgang initial True, false → Ausgang initial False
-        const forceResetTimeMs = Math.max(0, parseFloat(config.forceResetTime || 0) * 1000);
+        const resetPriority = config.resetPriority === true;  // Reset priorisiert
+        const forceResetTime = parseFloat(config.forceResetTime) || 0;
+        const initStatus = config.initStatus === true;
 
-        let outputState = initStatus;
+        // Zustand der Eingänge: [Set, Reset]
+        let states = [false, false];
+        let lastOutput = initStatus;
         let forceResetTimer = null;
 
-        // Statusanzeige aktualisieren
-        function updateStatus() {
+        // Ausgang initial setzen
+        function emit(result) {
+            if (emitOnChange) {
+                if (lastOutput !== result) {
+                    lastOutput = result;
+                    node.send({ payload: result });
+                }
+            } else {
+                lastOutput = result;
+                node.send({ payload: result });
+            }
+            updateStatus(result);
+        }
+
+        // Statusanzeige
+        function updateStatus(result) {
+            const active = states.reduce((a, v) => a + (v ? 1 : 0), 0);
             node.status({
-                fill: outputState ? "green" : "grey",
+                fill: result ? "green" : "grey",
                 shape: "dot",
-                text: `${displayName} · out:${outputState ? "true" : "false"}`
+                text: `${displayName} · S:${states[0]} R:${states[1]} · out:${result ? "true" : "false"}`
             });
         }
 
-        // Ausgang senden
-        function emit(state) {
-            outputState = state;
-            if (emitOnChange) node.send({ payload: state });
-            updateStatus();
+        // RS Logik auswerten
+        function evaluateRS() {
+            let output = lastOutput;
+
+            if (states[0] && states[1]) {
+                // Beide True → Priorität beachten
+                output = resetPriority ? false : true;
+            } else if (states[0]) {
+                output = true;
+            } else if (states[1]) {
+                output = false;
+            }
+
+            emit(output);
+
+            // Force Reset Timer
+            if (forceResetTime > 0) {
+                if (forceResetTimer) clearTimeout(forceResetTimer);
+                if (output) {
+                    forceResetTimer = setTimeout(() => {
+                        states[0] = false; // Set zurücksetzen
+                        evaluateRS();
+                    }, forceResetTime * 1000);
+                }
+            }
         }
 
-        // Force Reset Timer starten
-        function startForceResetTimer() {
-            if (forceResetTimeMs > 0) {
-                if (forceResetTimer) clearTimeout(forceResetTimer);
-                forceResetTimer = setTimeout(() => {
-                    emit(false);
-                    forceResetTimer = null;
-                }, forceResetTimeMs);
+        // Helper: Payload → Boolean
+        function toBool(v) {
+            if (typeof v === "boolean") return v;
+            if (typeof v === "number") return v !== 0;
+            if (typeof v === "string") {
+                const s = v.trim().toLowerCase();
+                if (["true", "on", "1", "open", "hoch", "an"].includes(s)) return true;
+                if (["false", "off", "0", "closed", "zu", "aus"].includes(s)) return false;
             }
+            return !!v;
         }
 
         node.on("input", (msg, send, done) => {
             try {
-                // Sofortiger Reset per msg.reset
-                if (msg.reset === true) {
-                    if (forceResetTimer) clearTimeout(forceResetTimer);
-                    forceResetTimer = null;
-                    emit(false);
+                let idx = undefined;
+                if (msg.topic !== undefined) {
+                    const n = parseInt(msg.topic, 10);
+                    if (!isNaN(n)) idx = n - 1;
+                }
+
+                if (idx === undefined || idx < 0 || idx >= inputsCount) {
                     if (done) done();
                     return;
                 }
 
-                const S = msg.set === true;
-                const R = msg.reset === true;
+                // Eingang setzen
+                states[idx] = toBool(msg.payload);
 
-                let newState = outputState;
-
-                if (S && R) {
-                    // Priorisierung nach Node-Config
-                    newState = resetPriority ? false : true;
-                } else if (S) {
-                    newState = true;
-                    startForceResetTimer();
-                } else if (R) {
-                    newState = false;
-                    if (forceResetTimer) {
-                        clearTimeout(forceResetTimer);
-                        forceResetTimer = null;
-                    }
-                }
-
-                emit(newState);
+                // RS Logik auswerten
+                evaluateRS();
 
                 if (done) done();
             } catch (e) {
@@ -78,7 +104,7 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
             }
         });
 
-        // Initial Status setzen
-        emit(outputState);
+        // Initialstatus setzen
+        emit(initStatus);
     };
 };
