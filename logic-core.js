@@ -10,40 +10,44 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
 
         let states = Array(inputsCount).fill(false);
         let lastTrueAt = Array(inputsCount).fill(0);
-        let lastOutput;
+        let lastOutput = undefined;
 
-        const toBool = v => {
+        function toBool(v) {
             if (typeof v === "boolean") return v;
             if (typeof v === "number") return v !== 0;
             if (typeof v === "string") {
                 const s = v.trim().toLowerCase();
-                if (["true","on","1","open","hoch","an"].includes(s)) return true;
-                if (["false","off","0","closed","zu","aus"].includes(s)) return false;
+                if (["true", "on", "1", "open", "hoch", "an"].includes(s)) return true;
+                if (["false", "off", "0", "closed", "zu", "aus"].includes(s)) return false;
             }
             return !!v;
-        };
+        }
 
-        const expireMemory = now => {
-            if (!memoryTimeMs) return;
-            for (let i=0;i<inputsCount;i++) {
-                if (states[i] && lastTrueAt[i]>0 && (now-lastTrueAt[i]>memoryTimeMs)) {
+        function expireMemory(now) {
+            if (memoryTimeMs <= 0) return;
+            for (let i = 0; i < inputsCount; i++) {
+                if (states[i] && lastTrueAt[i] > 0 && (now - lastTrueAt[i] > memoryTimeMs)) {
                     states[i] = false;
                     lastTrueAt[i] = 0;
                 }
             }
-        };
+        }
 
-        const evaluate = () => {
-            const evalInputs = states.map((v,i) => (negateInputs[i]? !v : v));
+        function evaluate() {
+            const evalInputs = states.map((v, i) => (negateInputs[i] ? !v : v));
             return computeResult(evalInputs);
-        };
+        }
 
-        const updateStatus = result => {
-            const active = states.reduce((a,v)=>a+(v?1:0),0);
-            node.status({ fill: result?"green":"grey", shape:"dot", text:`${displayName} · active:${active}/${inputsCount} · out:${result?"true":"false"}` });
-        };
+        function updateStatus(result) {
+            const active = states.reduce((a, v) => a + (v ? 1 : 0), 0);
+            node.status({
+                fill: result ? "green" : "grey",
+                shape: "dot",
+                text: `${displayName} · active:${active}/${inputsCount} · out:${result ? "true" : "false"}`
+            });
+        }
 
-        const emit = result => {
+        function emit(result) {
             if (emitOnChange) {
                 if (lastOutput !== result) {
                     lastOutput = result;
@@ -54,11 +58,11 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
                 node.send({ payload: result });
             }
             updateStatus(result);
-        };
+        }
 
-        node.on("input",(msg,send,done)=>{
+        node.on("input", (msg, send, done) => {
             try {
-                if (msg.reset===true) {
+                if (msg.reset === true) {
                     states = Array(inputsCount).fill(false);
                     lastTrueAt = Array(inputsCount).fill(0);
                     emit(false);
@@ -66,33 +70,30 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
                     return;
                 }
 
-                let idx;
-                if (msg.topic!==undefined) {
-                    const n = parseInt(msg.topic,10);
-                    if (!isNaN(n)) idx=n-1;
+                let idx = undefined;
+                if (msg.topic !== undefined) {
+                    const n = parseInt(msg.topic, 10);
+                    if (!isNaN(n)) idx = n - 1;
                 }
-                if (idx===undefined || idx<0 || idx>=inputsCount) {
+                if (idx === undefined || idx < 0 || idx >= inputsCount) {
                     if (done) done();
                     return;
                 }
 
                 const val = toBool(msg.payload);
+                states[idx] = val;
                 const now = Date.now();
-
-                if (val) {
-                    states[idx] = true;
-                    lastTrueAt[idx] = memoryTimeMs>0? now: 0;
-                } else {
-                    states[idx] = false;
-                    lastTrueAt[idx] = 0;
-                }
+                if (memoryTimeMs > 0 && val) lastTrueAt[idx] = now;
+                if (!val) lastTrueAt[idx] = 0;
 
                 expireMemory(now);
-                emit(evaluate());
+
+                const result = evaluate();
+                emit(result);
 
                 if (done) done();
-            } catch(e) {
-                node.error(e,msg);
+            } catch (e) {
+                node.error(e, msg);
                 if (done) done(e);
             }
         });
