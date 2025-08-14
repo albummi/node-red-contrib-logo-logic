@@ -1,96 +1,91 @@
 module.exports = function makeLogoLogicNode(RED, { typeName, displayName, computeResult }) {
-  return function(config) {
-    RED.nodes.createNode(this, config);
-    const node = this;
+    return function(config) {
+        RED.nodes.createNode(this, config);
+        const node = this;
 
-    const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
-    const emitOnChange = config.emitOnChange !== false;
+        // Konfiguration
+        const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
+        const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.map(Boolean) : [];
+        const emitOnChange = config.emitOnChange !== false; // default: true
 
+        // Zustand je Eingang
+        let states = Array(inputsCount).fill(false);
+        let lastOutput = undefined;
 
-    while (inputFields.length < inputsCount) inputFields.push("payload");
-    while (inputValues.length < inputsCount) inputValues.push("");
-    while (negateInputs.length < inputsCount) negateInputs.push(false);
-
-    let lastOutput = undefined;
-
-    function parseExpectedValue(raw) {
-      if (typeof raw === "boolean") return raw;
-      if (raw === null || raw === undefined) return undefined;
-      const s = String(raw).trim().toLowerCase();
-      if (s === "true") return true;
-      if (s === "false") return false;
-      if (s === "") return undefined;
-      if (!isNaN(Number(s))) return Number(s);
-      return s;
-    }
-
-    const expectedValues = inputValues.map(v => parseExpectedValue(v));
-
-    function getMsgProp(msg, path) {
-      if (!path) return undefined;
-      const parts = path.split(".");
-      let val = msg;
-      for (let p of parts) {
-        if (val && Object.prototype.hasOwnProperty.call(val, p)) val = val[p];
-        else return undefined;
-      }
-      return val;
-    }
-
-    function compare(actual, expected) {
-      if (expected === undefined) return !!actual; // treat empty expected as presence
-      if (typeof expected === "boolean") return !!actual === expected;
-      if (typeof expected === "number") return Number(actual) === expected;
-      return String(actual) === String(expected);
-    }
-
-    function evaluateFromMsg(msg) {
-      const evalInputs = [];
-      for (let i = 0; i < inputsCount; i++) {
-        const field = inputFields[i] || "payload";
-        const expected = expectedValues[i];
-        const actual = getMsgProp(msg, field);
-        let match = compare(actual, expected);
-        if (negateInputs[i]) match = !match;
-        evalInputs.push(match);
-      }
-      return evalInputs;
-    }
-
-    function updateStatus(result, states) {
-      const active = states ? states.filter(s => s).length : 0;
-      node.status({
-        fill: result ? "green" : "grey",
-        shape: "dot",
-        text: `${displayName} · active:${active}/${inputsCount} · out:${result ? "true" : "false"}`
-      });
-    }
-
-    function emit(result, states) {
-      if (emitOnChange) {
-        if (lastOutput !== result) {
-          lastOutput = result;
-          node.send({ payload: result });
+        // Helper: Payload → Boolean
+        function toBool(v) {
+            if (typeof v === "boolean") return v;
+            if (typeof v === "number") return v !== 0;
+            if (typeof v === "string") {
+                const s = v.trim().toLowerCase();
+                if (["true", "on", "1", "open", "hoch", "an"].includes(s)) return true;
+                if (["false", "off", "0", "closed", "zu", "aus"].includes(s)) return false;
+            }
+            return !!v;
         }
-      } else {
-        lastOutput = result;
-        node.send({ payload: result });
-      }
-      updateStatus(result, states);
-    }
 
-    node.on("input", (msg, send, done) => {
-      try {
-        const evalInputs = evaluateFromMsg(msg);
-        const result = computeResult(evalInputs);
-        emit(result, evalInputs);
-        if (done) done();
-      } catch (e) {
-        node.error(e, msg);
-        if (done) done(e);
-      }
-    });
+        function evaluate() {
+            const evalInputs = states.map((v, i) => (negateInputs[i] ? !v : v));
+            return computeResult(evalInputs);
+        }
 
-    updateStatus(false, new Array(inputsCount).fill(false));
-  };
+        function updateStatus(result) {
+            const active = states.reduce((a, v) => a + (v ? 1 : 0), 0);
+            node.status({
+                fill: result ? "green" : "grey",
+                shape: "dot",
+                text: `${displayName} · active:${active}/${inputsCount} · out:${result ? "true" : "false"}`
+            });
+        }
+
+        function emit(result) {
+            if (emitOnChange) {
+                if (lastOutput !== result) {
+                    lastOutput = result;
+                    node.send({ payload: result });
+                }
+            } else {
+                lastOutput = result;
+                node.send({ payload: result });
+            }
+            updateStatus(result);
+        }
+
+        node.on("input", (msg, send, done) => {
+            try {
+                // Reset
+                if (msg.reset === true) {
+                    states = Array(inputsCount).fill(false);
+                    emit(false);
+                    if (done) done();
+                    return;
+                }
+
+                let idx = undefined;
+                if (msg.topic !== undefined) {
+                    const n = parseInt(msg.topic, 10);
+                    if (!isNaN(n)) idx = n - 1;
+                }
+
+                if (idx === undefined || idx < 0 || idx >= inputsCount) {
+                    if (done) done();
+                    return;
+                }
+
+                // Eingang setzen
+                states[idx] = toBool(msg.payload);
+
+                // Ergebnis berechnen und senden
+                const result = evaluate();
+                emit(result);
+
+                if (done) done();
+            } catch (e) {
+                node.error(e, msg);
+                if (done) done(e);
+            }
+        });
+
+        updateStatus(false);
+    };
 };
