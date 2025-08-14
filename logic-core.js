@@ -3,15 +3,18 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
         RED.nodes.createNode(this, config);
         const node = this;
 
+        // Konfiguration
         const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
         const memoryTimeMs = Math.max(0, parseFloat(config.memoryTime || 0) * 1000);
         const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.map(Boolean) : [];
-        const emitOnChange = config.emitOnChange !== false;
+        const emitOnChange = config.emitOnChange !== false; // default: true
 
+        // Zustand je Eingang
         let states = Array(inputsCount).fill(false);
         let lastTrueAt = Array(inputsCount).fill(0);
         let lastOutput = undefined;
 
+        // Helper: Payload → Boolean
         function toBool(v) {
             if (typeof v === "boolean") return v;
             if (typeof v === "number") return v !== 0;
@@ -62,6 +65,7 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
 
         node.on("input", (msg, send, done) => {
             try {
+                // Reset
                 if (msg.reset === true) {
                     states = Array(inputsCount).fill(false);
                     lastTrueAt = Array(inputsCount).fill(0);
@@ -75,16 +79,23 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
                     const n = parseInt(msg.topic, 10);
                     if (!isNaN(n)) idx = n - 1;
                 }
+
                 if (idx === undefined || idx < 0 || idx >= inputsCount) {
                     if (done) done();
                     return;
                 }
 
                 const val = toBool(msg.payload);
-                states[idx] = val;
                 const now = Date.now();
-                if (memoryTimeMs > 0 && val) lastTrueAt[idx] = now;
-                if (!val) lastTrueAt[idx] = 0;
+
+                if (val) {
+                    states[idx] = true;
+                    if (memoryTimeMs > 0) lastTrueAt[idx] = now;
+                    else lastTrueAt[idx] = 0;
+                } else {
+                    states[idx] = false;
+                    lastTrueAt[idx] = 0;
+                }
 
                 expireMemory(now);
 
