@@ -14,5 +14,5 @@ mit **negierbaren Eingängen** und einer **konfigurierbaren Speicherzeit** pro E
 ## Installation
 ```bash
 cd ~/.node-red
-npm install DEIN-GITHUB-USER/node-red-contrib-logo-logic
+npm install albummi/node-red-contrib-logo-logic
 # Node-RED neu starten
