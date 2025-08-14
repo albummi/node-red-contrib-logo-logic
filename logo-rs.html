@@ -1,56 +1,48 @@
 <script type="text/javascript">
-    RED.nodes.registerType('logo-rs', {
+    RED.nodes.registerType('RS',{
         category: 'function',
         color: '#a6bbcf',
         defaults: {
-            name: { value: "" },
-            emitOnChange: { value: true },
-            resetPriority: { value: true },
-            forceResetTime: { value: 0 },
-            initStatus: { value: false }
+            name: {value:""},
+            forceResetTime: {value:0},
+            resetPriority: {value:false},
+            initStatus: {value:false},
+            emitOnChange: {value:true}
         },
-        inputs: 2,
-        outputs: 1,
+        inputs:2,
+        outputs:1,
         icon: "switch.png",
         label: function() {
-            return this.name || "RS-Glied";
+            return this.name||"RS";
         },
         oneditprepare: function() {
-            $("#node-input-emitOnChange").prop('checked', this.emitOnChange);
-            $("#node-input-resetPriority").prop('checked', this.resetPriority);
-            $("#node-input-forceResetTime").val(this.forceResetTime);
-            $("#node-input-initStatus").prop('checked', this.initStatus);
-        },
-        oneditsave: function() {
-            this.emitOnChange = $("#node-input-emitOnChange").prop('checked');
-            this.resetPriority = $("#node-input-resetPriority").prop('checked');
-            this.forceResetTime = parseFloat($("#node-input-forceResetTime").val()) || 0;
-            this.initStatus = $("#node-input-initStatus").prop('checked');
+            $("#node-input-forceResetTime").spinner({
+                min: 0,
+                step: 1
+            });
         }
     });
 </script>
 
 <div class="form-row">
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name des RS-Gliedes">
+    <input type="text" id="node-input-name" placeholder="Name der Node">
 </div>
 
 <div class="form-row">
-    <label for="node-input-emitOnChange"><i class="fa fa-bolt"></i> Nur bei Änderung senden</label>
-    <input type="checkbox" id="node-input-emitOnChange">
+    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Zeit (s)</label>
+    <input type="number" id="node-input-forceResetTime" min="0" value="0">
+    <p class="form-tips">Zeit nach der der Ausgang automatisch zurückgesetzt wird (0 = deaktiviert)</p>
 </div>
 
 <div class="form-row">
-    <label for="node-input-resetPriority"><i class="fa fa-exchange"></i> Reset priorisiert</label>
+    <label for="node-input-resetPriority"><i class="fa fa-arrows-v"></i> Reset priorisieren</label>
     <input type="checkbox" id="node-input-resetPriority">
+    <p class="form-tips">Wenn sowohl Set als auch Reset True sind, wird Reset priorisiert</p>
 </div>
 
 <div class="form-row">
-    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (Sekunden, 0=aus)</label>
-    <input type="number" id="node-input-forceResetTime" min="0" step="1">
-</div>
-
-<div class="form-row">
-    <label for="node-input-initStatus"><i class="fa fa-toggle-on"></i> Ausgang initial True</label>
+    <label for="node-input-initStatus"><i class="fa fa-power-off"></i> Initialstatus</label>
     <input type="checkbox" id="node-input-initStatus">
+    <p class="form-tips">Ausgang beim Start initial auf True setzen</p>
 </div>
