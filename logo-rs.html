@@ -1,39 +1,29 @@
-<script type="text/javascript">
-    RED.nodes.registerType('logo-rs', {
-        category: 'function',
-        color: '#a6bbcf',
-        defaults: {
-            name: { value: "" },
-            initState: { value: "false" },
-            forceResetTime: { value: 0 },
-            resetPriority: { value: "true" }
-        },
-        inputs: 1,
-        outputs: 1,
-        icon: "switch.png",
-        label: function() {
-            return this.name || "logo-rs";
-        }
-    });
+<script type="text/x-red" data-template-name="logo-rs">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="LOGO RS">
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
+    <input type="checkbox" id="node-input-emitOnChange" checked>
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-exchange"></i> Negierung pro Eingang</label>
+    <div id="negate-container">
+      <label style="margin-right:12px"><input type="checkbox" class="negate-flag" data-idx="0"> Negiere Set</label>
+      <label style="margin-right:12px"><input type="checkbox" class="negate-flag" data-idx="1"> Negiere Reset</label>
+    </div>
+  </div>
+  <div class="form-tips">
+    Setzt oder resettet den Ausgang abhängig von den Eingangssignalen. Payload wird zu Boolean konvertiert.
+  </div>
 </script>
 
-<div class="form-row">
-    <label for="node-input-initState"><i class="fa fa-toggle-on"></i> Initial State</label>
-    <select id="node-input-initState">
-        <option value="true">True</option>
-        <option value="false">False</option>
-    </select>
-</div>
-
-<div class="form-row">
-    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (s)</label>
-    <input type="number" id="node-input-forceResetTime" />
-</div>
-
-<div class="form-row">
-    <label for="node-input-resetPriority"><i class="fa fa-exchange"></i> Reset Priority</label>
-    <select id="node-input-resetPriority">
-        <option value="true">Reset priorisiert</option>
-        <option value="false">Set priorisiert</option>
-    </select>
-</div>
+<script type="text/x-red" data-help-name="logo-rs">
+  <p>LOGO-Style RS-Flipflop mit negierbaren Eingängen.</p>
+  <ul>
+    <li><b>Eingänge:</b> 2 – Set und Reset.</li>
+    <li><b>Negierung:</b> pro Eingang umkehrbar.</li>
+    <li><b>Reset:</b> <code>msg.reset = true</code> löscht den Ausgangszustand.</li>
+  </ul>
+</script>
