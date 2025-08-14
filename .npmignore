@@ -1,0 +1,6 @@
+# Ignoriere alles, was nicht veröffentlicht werden soll
+.git
+.github
+*.md
+LICENSE
+node_modules
