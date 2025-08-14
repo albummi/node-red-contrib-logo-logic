@@ -31,6 +31,7 @@ module.exports = function(RED) {
                 const resetInput = msg.reset === true;
 
                 if (setInput && resetInput) {
+                    // Bei beiden Signalen entscheidet resetPriority
                     output = resetPriority ? false : true;
                 } else if (setInput) {
                     output = true;
