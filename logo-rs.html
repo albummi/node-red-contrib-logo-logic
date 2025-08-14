@@ -8,22 +8,29 @@
     <input type="checkbox" id="node-input-emitOnChange" checked>
   </div>
   <div class="form-row">
-    <label><i class="fa fa-exchange"></i> Negierung pro Eingang</label>
-    <div id="negate-container">
-      <label style="margin-right:12px"><input type="checkbox" class="negate-flag" data-idx="0"> Negiere Set</label>
-      <label style="margin-right:12px"><input type="checkbox" class="negate-flag" data-idx="1"> Negiere Reset</label>
-    </div>
+    <label><i class="fa fa-clock-o"></i> Force Reset Timer (s, 0 = aus)</label>
+    <input type="number" id="node-input-forceResetTime" min="0" value="0">
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-exchange"></i> Reset priorisiert bei gleichzeitigem Set/Reset</label>
+    <input type="checkbox" id="node-input-resetPriority">
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-power-off"></i> Initialstatus (True = Set)</label>
+    <input type="checkbox" id="node-input-initState">
   </div>
   <div class="form-tips">
-    Setzt oder resettet den Ausgang abhängig von den Eingangssignalen. Payload wird zu Boolean konvertiert.
+    Verwendet <code>msg.set = true</code> für Set, <code>msg.reset = true</code> für Reset. Alle anderen Felder sind optional konfigurativ.
   </div>
 </script>
 
 <script type="text/x-red" data-help-name="logo-rs">
-  <p>LOGO-Style RS-Flipflop mit negierbaren Eingängen.</p>
+  <p>RS-Flipflop im LOGO-Stil mit optionalem Timer und Priorisierung:</p>
   <ul>
-    <li><b>Eingänge:</b> 2 – Set und Reset.</li>
-    <li><b>Negierung:</b> pro Eingang umkehrbar.</li>
-    <li><b>Reset:</b> <code>msg.reset = true</code> löscht den Ausgangszustand.</li>
+    <li><b>Set</b>: <code>msg.set = true</code> schaltet Ausgang auf True</li>
+    <li><b>Reset</b>: <code>msg.reset = true</code> schaltet Ausgang auf False</li>
+    <li><b>Initialstatus</b>: Ausgang bei Start auf True oder False</li>
+    <li><b>Force Reset Timer</b>: Setzt Ausgang nach X Sekunden automatisch zurück</li>
+    <li><b>Priorität</b>: Bestimmt, ob Reset Vorrang hat bei gleichzeitigem Set & Reset</li>
   </ul>
 </script>
