@@ -1,0 +1,85 @@
+<script type="text/x-red" data-template-name="logo-xor">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="LOGO XOR">
+  </div>
+  <div class="form-row">
+    <label for="node-input-inputsCount"><i class="fa fa-sign-in"></i> Anzahl Eingänge</label>
+    <input type="number" id="node-input-inputsCount" min="2" max="8">
+  </div>
+  <div class="form-row">
+    <label for="node-input-memoryTime"><i class="fa fa-clock-o"></i> Speicherzeit (Sek.)</label>
+    <input type="number" id="node-input-memoryTime" min="0" step="0.1">
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
+    <input type="checkbox" id="node-input-emitOnChange" checked>
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-exchange"></i> Negierung pro Eingang</label>
+    <div id="negate-container"></div>
+  </div>
+</script>
+
+<script type="text/x-red" data-help-name="logo-xor">
+  <p>LOGO-Style XOR-Gatter (ungerade Anzahl TRUE) mit negierbaren Eingängen und Impuls-Speicherzeit.</p>
+</script>
+
+<script type="text/javascript">
+  (function() {
+    function buildNegationUI(count, values) {
+      const container = $("#negate-container");
+      container.empty();
+      for (let i = 1; i <= count; i++) {
+        const checked = (values && values[i-1]) ? "checked" : "";
+        container.append(
+          `<label style="margin-right:12px"><input type="checkbox" class="negate-flag" data-idx="${i-1}" ${checked}> Negiere E${i}</label>`
+        );
+      }
+    }
+
+    RED.nodes.registerType('logo-xor', {
+      category: 'function',
+      color: '#FFCC00',
+      icon: 'font-awesome/fa-cogs',
+      defaults: {
+        name: { value: "" },
+        inputsCount: { value: 2, required: true, validate: v => v >= 2 && v <= 8 },
+        memoryTime: { value: 0, required: true },
+        negateInputs: { value: [] },
+        emitOnChange: { value: true }
+      },
+      inputs: 1,
+      outputs: 1,
+      label: function() {
+        return this.name || "LOGO XOR";
+      },
+      oneditprepare: function() {
+        const self = this;
+        const countEl = $("#node-input-inputsCount");
+        buildNegationUI(parseInt(countEl.val(), 10) || 2, self.negateInputs || []);
+        countEl.on("change", function() {
+          const c = Math.max(2, Math.min(8, parseInt($(this).val(), 10) || 2));
+          buildNegationUI(c, self.negateInputs || []);
+        });
+        if (Array.isArray(self.negateInputs)) {
+          $(".negate-flag").each(function() {
+            const i = parseInt($(this).data("idx"), 10);
+            if (self.negateInputs[i]) $(this).prop("checked", true);
+          });
+        }
+      },
+      oneditsave: function() {
+        const count = Math.max(2, Math.min(8, parseInt($("#node-input-inputsCount").val(), 10) || 2));
+        let negs = new Array(count).fill(false);
+        $(".negate-flag").each(function() {
+          const i = parseInt($(this).data("idx"), 10);
+          if (!isNaN(i) && i < count) {
+            negs[i] = $(this).is(":checked");
+          }
+        });
+        this.negateInputs = negs;
+      }
+    });
+  })();
+</script>
