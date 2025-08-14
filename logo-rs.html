@@ -1,39 +1,90 @@
-<script type="text/javascript">
-    RED.nodes.registerType('logo-rs', {
-        category: 'function',
-        color: '#a6bbcf',
-        defaults: {
-            name: { value: "" },
-            initState: { value: "false" },
-            forceResetTime: { value: 0 },
-            resetPriority: { value: "true" }
-        },
-        inputs: 1,
-        outputs: 1,
-        icon: "switch.png",
-        label: function() {
-            return this.name || "logo-rs";
-        }
-    });
+<script type="text/x-red" data-template-name="logo-rs">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="LOGO RS">
+  </div>
+  <div class="form-row">
+    <label for="node-input-inputsCount"><i class="fa fa-sign-in"></i> Anzahl Eingänge</label>
+    <input type="number" id="node-input-inputsCount" min="2" max="8" value="2">
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
+    <input type="checkbox" id="node-input-emitOnChange" checked>
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-exchange"></i> Negierung pro Eingang</label>
+    <div id="negate-container"></div>
+  </div>
+  <div class="form-tips">
+    Eingänge werden über <code>msg.topic = "1" | "2" | ...</code> adressiert. Payload wird zu Boolean konvertiert. 
+    Reset-Eingang über <code>msg.reset = true</code> setzt den Speicher zurück.
+  </div>
 </script>
 
-<div class="form-row">
-    <label for="node-input-initState"><i class="fa fa-toggle-on"></i> Initial State</label>
-    <select id="node-input-initState">
-        <option value="true">True</option>
-        <option value="false">False</option>
-    </select>
-</div>
+<script type="text/x-red" data-help-name="logo-rs">
+  <p>LOGO-Style RS-Flipflop mit negierbaren Eingängen und optionaler Impuls-Speicherzeit.</p>
+  <ul>
+    <li><b>Anzahl Eingänge:</b> 2–8, über <code>msg.topic</code> adressiert (1-basiert).</li>
+    <li><b>Reset:</b> <code>msg.reset = true</code löscht Zustände aller Eingänge.</li>
+    <li><b>Negierung:</b> pro Eingang umkehrbar.</li>
+    <li><b>Nur bei Zustandsänderung senden:</b> Payload wird nur ausgegeben, wenn sich der Flipflop-Zustand ändert.</li>
+  </ul>
+</script>
 
-<div class="form-row">
-    <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (s)</label>
-    <input type="number" id="node-input-forceResetTime" />
-</div>
+<script type="text/javascript">
+(function() {
+  function buildNegationUI(count, values) {
+    const container = $("#negate-container");
+    container.empty();
+    for (let i = 1; i <= count; i++) {
+      const checked = (values && values[i-1]) ? "checked" : "";
+      container.append(
+        `<label style="margin-right:12px"><input type="checkbox" class="negate-flag" data-idx="${i-1}" ${checked}> Negiere E${i}</label>`
+      );
+    }
+  }
 
-<div class="form-row">
-    <label for="node-input-resetPriority"><i class="fa fa-exchange"></i> Reset Priority</label>
-    <select id="node-input-resetPriority">
-        <option value="true">Reset priorisiert</option>
-        <option value="false">Set priorisiert</option>
-    </select>
-</div>
+  RED.nodes.registerType('logo-rs', {
+    category: 'function',
+    color: '#FF9900',
+    icon: 'font-awesome/fa-toggle-on',
+    defaults: {
+      name: { value: "" },
+      inputsCount: { value: 2, required: true, validate: v => v >= 2 && v <= 8 },
+      negateInputs: { value: [] },
+      emitOnChange: { value: true }
+    },
+    inputs: 1,
+    outputs: 1,
+    label: function() {
+      return this.name || "LOGO RS";
+    },
+    oneditprepare: function() {
+      const self = this;
+      const countEl = $("#node-input-inputsCount");
+      buildNegationUI(parseInt(countEl.val(), 10) || 2, self.negateInputs || []);
+      countEl.on("change", function() {
+        const c = Math.max(2, Math.min(8, parseInt($(this).val(), 10) || 2));
+        buildNegationUI(c, self.negateInputs || []);
+      });
+      if (Array.isArray(self.negateInputs)) {
+        $(".negate-flag").each(function() {
+          const i = parseInt($(this).data("idx"), 10);
+          if (self.negateInputs[i]) $(this).prop("checked", true);
+        });
+      }
+    },
+    oneditsave: function() {
+      const count = Math.max(2, Math.min(8, parseInt($("#node-input-inputsCount").val(), 10) || 2));
+      let negs = new Array(count).fill(false);
+      $(".negate-flag").each(function() {
+        const i = parseInt($(this).data("idx"), 10);
+        if (!isNaN(i) && i < count) {
+          negs[i] = $(this).is(":checked");
+        }
+      });
+      this.negateInputs = negs;
+    }
+  });
+})();
+</script>
