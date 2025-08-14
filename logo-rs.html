@@ -1,5 +1,5 @@
 <script type="text/javascript">
-    RED.nodes.registerType('RS', {
+    RED.nodes.registerType('logo-rs', {
         category: 'function',
         color: '#a6bbcf',
         defaults: {
@@ -12,19 +12,14 @@
         outputs: 1,
         icon: "switch.png",
         label: function() {
-            return this.name || "RS";
-        },
-        oneditprepare: function() {
-            $("#node-input-initState").val(this.initState);
-            $("#node-input-forceResetTime").val(this.forceResetTime);
-            $("#node-input-resetPriority").val(this.resetPriority);
+            return this.name || "logo-rs";
         }
     });
 </script>
 
 <div class="form-row">
     <label for="node-input-initState"><i class="fa fa-toggle-on"></i> Initial State</label>
-    <select id="node-input-initState" style="width: 100%;">
+    <select id="node-input-initState">
         <option value="true">True</option>
         <option value="false">False</option>
     </select>
@@ -32,12 +27,12 @@
 
 <div class="form-row">
     <label for="node-input-forceResetTime"><i class="fa fa-clock-o"></i> Force Reset Timer (s)</label>
-    <input type="number" id="node-input-forceResetTime" style="width: 100%;" />
+    <input type="number" id="node-input-forceResetTime" />
 </div>
 
 <div class="form-row">
     <label for="node-input-resetPriority"><i class="fa fa-exchange"></i> Reset Priority</label>
-    <select id="node-input-resetPriority" style="width: 100%;">
+    <select id="node-input-resetPriority">
         <option value="true">Reset priorisiert</option>
         <option value="false">Set priorisiert</option>
     </select>

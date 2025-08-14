@@ -1,4 +1,5 @@
 module.exports = function(RED) {
+
     function RSNode(config) {
         RED.nodes.createNode(this, config);
         const node = this;
@@ -30,11 +31,7 @@ module.exports = function(RED) {
                 const resetInput = msg.reset === true;
 
                 if (setInput && resetInput) {
-                    if (resetPriority) {
-                        output = false;
-                    } else {
-                        output = true;
-                    }
+                    output = resetPriority ? false : true;
                 } else if (setInput) {
                     output = true;
                 } else if (resetInput) {
@@ -60,5 +57,5 @@ module.exports = function(RED) {
         updateStatus();
     }
 
-    RED.nodes.registerType("RS", RSNode);
+    RED.nodes.registerType("logo-rs", RSNode);
 };
