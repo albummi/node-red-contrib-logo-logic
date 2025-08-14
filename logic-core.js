@@ -1,91 +1,64 @@
 module.exports = function makeLogoLogicNode(RED, { typeName, displayName, computeResult }) {
-    return function(config) {
-        RED.nodes.createNode(this, config);
-        const node = this;
+  return function(config) {
+    RED.nodes.createNode(this, config);
+    const node = this;
 
-        // Konfiguration
-        const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
-        const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.map(Boolean) : [];
-        const emitOnChange = config.emitOnChange !== false; // default: true
+    const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
+    const emitOnChange = config.emitOnChange !== false;
+    const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.slice(0, inputsCount) : new Array(inputsCount).fill(false);
+    const topicValues = Array.isArray(config.topicValues) ? config.topicValues.slice(0, inputsCount) : new Array(inputsCount).fill("");
 
-        // Zustand je Eingang
-        let states = Array(inputsCount).fill(false);
-        let lastOutput = undefined;
+    while (topicValues.length < inputsCount) topicValues.push("");
+    while (negateInputs.length < inputsCount) negateInputs.push(false);
 
-        // Helper: Payload → Boolean
-        function toBool(v) {
-            if (typeof v === "boolean") return v;
-            if (typeof v === "number") return v !== 0;
-            if (typeof v === "string") {
-                const s = v.trim().toLowerCase();
-                if (["true", "on", "1", "open", "hoch", "an"].includes(s)) return true;
-                if (["false", "off", "0", "closed", "zu", "aus"].includes(s)) return false;
-            }
-            return !!v;
+    let lastOutput;
+
+    function evaluateFromMsg(msg) {
+      const evalInputs = [];
+      for (let i = 0; i < inputsCount; i++) {
+        const expected = topicValues[i];
+        const actual = msg.topic;
+        let match = (actual !== undefined && String(actual) === expected);
+        if (negateInputs[i]) match = !match;
+        evalInputs.push(match);
+      }
+      return evalInputs;
+    }
+
+    function updateStatus(result, states) {
+      const active = states.filter(s => s).length;
+      node.status({
+        fill: result ? "green" : "grey",
+        shape: "dot",
+        text: `${displayName} · active:${active}/${inputsCount} · out:${result ? "true" : "false"}`
+      });
+    }
+
+    function emit(result, states) {
+      if (emitOnChange) {
+        if (lastOutput !== result) {
+          lastOutput = result;
+          node.send({ payload: result });
         }
+      } else {
+        lastOutput = result;
+        node.send({ payload: result });
+      }
+      updateStatus(result, states);
+    }
 
-        function evaluate() {
-            const evalInputs = states.map((v, i) => (negateInputs[i] ? !v : v));
-            return computeResult(evalInputs);
-        }
+    node.on("input", (msg, send, done) => {
+      try {
+        const evalInputs = evaluateFromMsg(msg);
+        const result = computeResult(evalInputs);
+        emit(result, evalInputs);
+        if (done) done();
+      } catch (e) {
+        node.error(e, msg);
+        if (done) done(e);
+      }
+    });
 
-        function updateStatus(result) {
-            const active = states.reduce((a, v) => a + (v ? 1 : 0), 0);
-            node.status({
-                fill: result ? "green" : "grey",
-                shape: "dot",
-                text: `${displayName} · active:${active}/${inputsCount} · out:${result ? "true" : "false"}`
-            });
-        }
-
-        function emit(result) {
-            if (emitOnChange) {
-                if (lastOutput !== result) {
-                    lastOutput = result;
-                    node.send({ payload: result });
-                }
-            } else {
-                lastOutput = result;
-                node.send({ payload: result });
-            }
-            updateStatus(result);
-        }
-
-        node.on("input", (msg, send, done) => {
-            try {
-                // Reset
-                if (msg.reset === true) {
-                    states = Array(inputsCount).fill(false);
-                    emit(false);
-                    if (done) done();
-                    return;
-                }
-
-                let idx = undefined;
-                if (msg.topic !== undefined) {
-                    const n = parseInt(msg.topic, 10);
-                    if (!isNaN(n)) idx = n - 1;
-                }
-
-                if (idx === undefined || idx < 0 || idx >= inputsCount) {
-                    if (done) done();
-                    return;
-                }
-
-                // Eingang setzen
-                states[idx] = toBool(msg.payload);
-
-                // Ergebnis berechnen und senden
-                const result = evaluate();
-                emit(result);
-
-                if (done) done();
-            } catch (e) {
-                node.error(e, msg);
-                if (done) done(e);
-            }
-        });
-
-        updateStatus(false);
-    };
+    updateStatus(false, new Array(inputsCount).fill(false));
+  };
 };

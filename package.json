@@ -1,6 +1,7 @@
 {
   "name": "node-red-contrib-logo-logic",
-  "version": "1.2.4",
+  "version": "1.2.5",
+
   "description": "Logo-Logic Nodes for Node-RED: AND, OR, XOR, NAND, RS",
   "keywords": ["node-red", "node-red-node", "logic", "AND", "OR", "XOR", "NAND", "logo", "RS"],
   "author": "Dein Name <deine.email@example.com>",
