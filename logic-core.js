@@ -8,7 +8,7 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
         const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.map(Boolean) : [];
         const emitOnChange = config.emitOnChange !== false; // default: true
 
-        // Zustand je Eingang
+        // Zustand je Eingan
         let states = Array(inputsCount).fill(false);
         let lastOutput = undefined;
 
