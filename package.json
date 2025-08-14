@@ -1,0 +1,28 @@
+{
+  "name": "node-red-contrib-logo-logic",
+  "version": "1.0.0",
+  "description": "Siemens LOGO!-Style Logik-Gatter (AND/OR/XOR/NAND) mit negierbaren Eingängen und konfigurierbarer Impuls-Speicherzeit",
+  "keywords": ["node-red", "logic", "siemens", "logo", "and", "or", "xor", "nand", "gate"],
+  "author": "DEIN NAME",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/albummi/node-red-contrib-logo-logic.git"
+  },
+  "bugs": {
+    "url": "https://github.com/albummi/node-red-contrib-logo-logic/issues"
+  },
+  "homepage": "https://github.com/albummi/node-red-contrib-logo-logic#readme",
+  "node-red": {
+    "nodes": {
+      "logo-and": "logo-and.js",
+      "logo-or": "logo-or.js",
+      "logo-xor": "logo-xor.js",
+      "logo-nand": "logo-nand.js"
+    }
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "dependencies": {}
+}
