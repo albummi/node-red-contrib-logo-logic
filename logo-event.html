@@ -1,17 +1,42 @@
+<script type="text/javascript">
+    RED.nodes.registerType('logo-event', {
+        category: 'home_assistant',
+        color: '#fdd835',
+        inputs: 0,
+        outputs: 1,  // nur ein Ausgang
+        icon: 'ha-state.svg',
+        label: function() {
+            return this.name || "event: state (single)";
+        },
+        defaults: {
+            name: { value:"" },
+            server: { value:"", type:"server", required:true },
+            version: { value: 0 },
+            entityidfilter: { value:"" },
+            entityidfiltertype: { value:"exact" },
+            outputinitially: { value:false },
+            state_type: { value:"str" },
+            haltifstate: { value:"" },
+            halt_if_type: { value:"str" },
+            halt_if_compare: { value:"is" },
+            for: { value:0 },
+            forUnits: { value:"minutes" },
+            outputs: { value:1 }
+        }
+    });
+</script>
+
 <script type="text/x-red" data-template-name="logo-event">
-  <!-- exakt wie original: alle Felder, Labels & Reihenfolge übernommen -->
-  <!-- Name, Server, Entity ID, Filters, Options... -->
-  <!-- nur Outputs auf 1 gesetzt und Label angepasst -->
   <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <label for="node-input-name">Name</label>
     <input type="text" id="node-input-name">
   </div>
   <div class="form-row">
-    <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+    <label for="node-input-server"><i class="fa fa-server"></i> Home Assistant</label>
     <input type="text" id="node-input-server">
   </div>
   <div class="form-row">
-    <label for="node-input-entityidfilter"><i class="fa fa-cube"></i> Entity ID Filter</label>
+    <label for="node-input-entityidfilter"><i class="fa fa-tag"></i> Entity ID Filter</label>
     <input type="text" id="node-input-entityidfilter">
   </div>
   <div class="form-row">
@@ -19,28 +44,12 @@
     <select id="node-input-entityidfiltertype">
       <option value="exact">Exact</option>
       <option value="substring">Substring</option>
-      <option value="regex">RegEx</option>
+      <option value="regex">Regex</option>
     </select>
   </div>
   <div class="form-row">
-    <label for="node-input-outputinitially"><i class="fa fa-play-circle"></i> Output on Connect</label>
+    <label for="node-input-outputinitially"><i class="fa fa-power-off"></i> Output initially</label>
     <input type="checkbox" id="node-input-outputinitially">
-  </div>
-  <div class="form-row">
-    <label for="node-input-ifstate"><i class="fa fa-filter"></i> If State (JSONata)</label>
-    <input type="text" id="node-input-ifstate">
-  </div>
-  <div class="form-row">
-    <label for="node-input-for"><i class="fa fa-clock-o"></i> For</label>
-    <input type="text" id="node-input-for" placeholder="e.g. 5s">
-  </div>
-  <div class="form-row">
-    <label for="node-input-forunit">Unit</label>
-    <select id="node-input-forunit">
-      <option value="s">sec</option>
-      <option value="m">min</option>
-      <option value="h">hour</option>
-    </select>
   </div>
   <div class="form-row">
     <label for="node-input-state_type"><i class="fa fa-code"></i> State Type</label>
@@ -50,30 +59,38 @@
       <option value="bool">Boolean</option>
     </select>
   </div>
-</script>
-
-<script type="text/javascript">
-RED.nodes.registerType('logo-event', {
-  category: 'home_assistant',
-  color: '#fdd835',
-  inputs: 0,
-  outputs: 1, // nur ein Ausgang
-  icon: 'arrow-in.png',
-  label: function() { return this.name || 'logo-event'; },
-  defaults: {
-    name: { value: '' },
-    server: { type: 'server', required: true },
-    entityidfilter: { value: '' },
-    entityidfiltertype: { value: 'exact' },
-    outputinitially: { value: false },
-    ifstate: { value: '' },
-    for: { value: 0 },
-    forunit: { value: 's' },
-    state_type: { value: 'str' }
-  }
-});
+  <div class="form-row">
+    <label for="node-input-haltifstate"><i class="fa fa-ban"></i> If State</label>
+    <input type="text" id="node-input-haltifstate">
+  </div>
+  <div class="form-row">
+    <label for="node-input-halt_if_compare">Comparison</label>
+    <select id="node-input-halt_if_compare">
+      <option value="is">=</option>
+      <option value="is_not">≠</option>
+      <option value="lt">&lt;</option>
+      <option value="lte">&lt;=</option>
+      <option value="gt">&gt;</option>
+      <option value="gte">&gt;=</option>
+    </select>
+    <select id="node-input-halt_if_type">
+      <option value="str">String</option>
+      <option value="num">Number</option>
+      <option value="bool">Boolean</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-for"><i class="fa fa-clock-o"></i> For</label>
+    <input type="number" id="node-input-for" style="width: 100px;">
+    <select id="node-input-forUnits">
+      <option value="seconds">seconds</option>
+      <option value="minutes">minutes</option>
+      <option value="hours">hours</option>
+    </select>
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="logo-event">
-  <p>Exact same UI as Home Assistant <b>Events: State</b> node, but with a single output returning <code>true</code> or <code>false</code> in <code>msg.payload</code>.</p>
+  <p>This is a replica of the original Home Assistant <code>events: state</code> node UI with a single output.
+  It outputs a single message with <code>msg.payload = true</code> or <code>false</code> based on the condition.</p>
 </script>
