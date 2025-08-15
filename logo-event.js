@@ -1,78 +1,85 @@
-module.exports = function (RED) {
-    function LogoEventNode(config) {
-        RED.nodes.createNode(this, config);
-        const node = this;
-        node.server = RED.nodes.getNode(config.server);
-
-        if (!node.server || !node.server.api) {
-            node.error("No Home Assistant server configured");
-            return;
-        }
-
-        const entityIdFilter = config.entityidfilter || '';
-        const filterType = config.entityidfiltertype || 'exact';
-        const outputInitially = config.outputinitially;
-        const haltIfState = config.haltifstate;
-        const haltIfCompare = config.halt_if_compare || 'is';
-        const haltIfType = config.halt_if_type || 'str';
-
-        function matchEntity(entityId) {
-            if (!entityIdFilter) return true;
-            if (filterType === 'exact') return entityId === entityIdFilter;
-            if (filterType === 'substring') return entityId.includes(entityIdFilter);
-            if (filterType === 'regex') return new RegExp(entityIdFilter).test(entityId);
-            return false;
-        }
-
-        function compareStates(newState) {
-            if (haltIfState === '') return null;
-            let cmpVal = haltIfState;
-
-            if (haltIfType === 'num') {
-                newState = Number(newState);
-                cmpVal = Number(cmpVal);
-            } else if (haltIfType === 'bool') {
-                newState = (newState === true || newState === 'true');
-                cmpVal = (cmpVal === true || cmpVal === 'true');
-            }
-
-            switch (haltIfCompare) {
-                case 'is': return newState === cmpVal;
-                case 'is_not': return newState !== cmpVal;
-                case 'lt': return newState < cmpVal;
-                case 'lte': return newState <= cmpVal;
-                case 'gt': return newState > cmpVal;
-                case 'gte': return newState >= cmpVal;
-                default: return null;
-            }
-        }
-
-        function sendStateChange(entity) {
-            const matches = matchEntity(entity.entity_id);
-            if (!matches) return;
-
-            const comparison = compareStates(entity.state);
-            if (comparison === null) {
-                node.send({ payload: false, topic: entity.entity_id, data: entity });
-            } else {
-                node.send({ payload: comparison, topic: entity.entity_id, data: entity });
-            }
-        }
-
-        node.server.api.on('state_changed', (event) => {
-            if (event && event.data && event.data.new_state) {
-                sendStateChange(event.data.new_state);
-            }
-        });
-
-        if (outputInitially) {
-            node.server.api.getStates().then((states) => {
-                for (const [entityId, entity] of Object.entries(states)) {
-                    sendStateChange(entity);
-                }
-            });
-        }
+module.exports = function(RED) {
+  function LogoEventNode(config) {
+    RED.nodes.createNode(this, config);
+    const node = this;
+    const serverNode = RED.nodes.getNode(config.server);
+    if (!serverNode) {
+      node.error("Home Assistant server not configured");
+      return;
+    }
+    const api = serverNode.api;
+    if (!api) {
+      node.error("Home Assistant connection missing");
+      return;
     }
 
-    RED.nodes.registerType('logo-event', LogoEventNode);
+    // Kopiert aus original:
+    const entityFilter = config.entityidfilter;
+    const filterType = config.entityidfiltertype;
+    const outputInitially = config.outputinitially;
+    const ifState = config.ifstate;
+    const forDuration = config.for * (config.forunit === 'm' ? 60 : config.forunit === 'h' ? 3600 : 1);
+    const stateType = config.state_type;
+
+    let pendingTimer;
+
+    function matchEntity(id) {
+      if (!entityFilter) return true;
+      switch (filterType) {
+        case 'exact': return id === entityFilter;
+        case 'substring': return id.includes(entityFilter);
+        case 'regex': return new RegExp(entityFilter).test(id);
+      }
+      return false;
+    }
+
+    function evalCondition(state) {
+      // original JSONata; simplified: ifState empty = no filter
+      if (!ifState) return true;
+      try {
+        return RED.util.evaluateJSONataExpression(ifState, msg);
+      } catch(e) {
+        node.error("Error evaluating condition: " + e.message);
+        return false;
+      }
+    }
+
+    function onEvent(evt) {
+      const id = evt.entity_id;
+      if (!matchEntity(id)) return;
+
+      const newState = evt.new_state ? evt.new_state.state : null;
+      const ok = evalCondition(newState);
+
+      clearTimeout(pendingTimer);
+
+      if (forDuration > 0 && ok) {
+        pendingTimer = setTimeout(() => {
+          const msg = { payload: true, topic: id, data: evt };
+          node.send(msg);
+        }, forDuration * 1000);
+      } else {
+        const msg = { payload: ok, topic: id, data: evt };
+        node.send(msg);
+      }
+    }
+
+    api.on('ha_events:state_changed', onEvent);
+
+    if (outputInitially) {
+      api.getStates().then(states => {
+        for (const id in states) {
+          const evt = { entity_id: id, new_state: states[id], old_state: null };
+          onEvent(evt);
+        }
+      });
+    }
+
+    node.on('close', () => {
+      api.removeListener('ha_events:state_changed', onEvent);
+      if (pendingTimer) clearTimeout(pendingTimer);
+    });
+  }
+
+  RED.nodes.registerType('logo-event', LogoEventNode);
 };
