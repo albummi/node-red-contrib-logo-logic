@@ -1,96 +1,135 @@
 <script type="text/javascript">
     RED.nodes.registerType('logo-event', {
         category: 'home_assistant',
-        color: '#fdd835',
+        color: '#fdd835',  // falls du eine andere LOGO-Farbe möchtest, passe sie an
         inputs: 0,
-        outputs: 1,  // nur ein Ausgang
+        outputs: 1,  // genau dieser Wert ist geändert: nur ein Ausgang
         icon: 'ha-state.svg',
         label: function() {
-            return this.name || "event: state (single)";
+            return this.name || "event: state";
         },
         defaults: {
             name: { value:"" },
-            server: { value:"", type:"server", required:true },
-            version: { value: 0 },
+            server: { type:"server", required:true },
+            version: { value:0 },
             entityidfilter: { value:"" },
             entityidfiltertype: { value:"exact" },
             outputinitially: { value:false },
             state_type: { value:"str" },
-            haltifstate: { value:"" },
-            halt_if_type: { value:"str" },
-            halt_if_compare: { value:"is" },
+            ifstate: { value:"" },
+            ifStateType: { value:"str" },
+            ifStateOperator: { value:"is" },
             for: { value:0 },
-            forUnits: { value:"minutes" },
-            outputs: { value:1 }
+            forUnit: { value:"seconds" },
+            ignorePrevStateNull: { value:false },
+            ignorePrevStateUnknown: { value:false },
+            ignorePrevStateUnavailable: { value:false },
+            ignoreCurrentStateUnknown: { value:false },
+            ignoreCurrentStateUnavailable: { value:false },
+            outputOnlyOnStateChange: { value:false },
+            exposeAsEntityConfig: { value:"" }
         }
     });
 </script>
 
 <script type="text/x-red" data-template-name="logo-event">
-  <div class="form-row">
-    <label for="node-input-name">Name</label>
-    <input type="text" id="node-input-name">
-  </div>
-  <div class="form-row">
-    <label for="node-input-server"><i class="fa fa-server"></i> Home Assistant</label>
-    <input type="text" id="node-input-server">
-  </div>
-  <div class="form-row">
-    <label for="node-input-entityidfilter"><i class="fa fa-tag"></i> Entity ID Filter</label>
-    <input type="text" id="node-input-entityidfilter">
-  </div>
-  <div class="form-row">
-    <label for="node-input-entityidfiltertype"><i class="fa fa-filter"></i> Filter Type</label>
-    <select id="node-input-entityidfiltertype">
-      <option value="exact">Exact</option>
-      <option value="substring">Substring</option>
-      <option value="regex">Regex</option>
-    </select>
-  </div>
-  <div class="form-row">
-    <label for="node-input-outputinitially"><i class="fa fa-power-off"></i> Output initially</label>
-    <input type="checkbox" id="node-input-outputinitially">
-  </div>
-  <div class="form-row">
-    <label for="node-input-state_type"><i class="fa fa-code"></i> State Type</label>
-    <select id="node-input-state_type">
-      <option value="str">String</option>
-      <option value="num">Number</option>
-      <option value="bool">Boolean</option>
-    </select>
-  </div>
-  <div class="form-row">
-    <label for="node-input-haltifstate"><i class="fa fa-ban"></i> If State</label>
-    <input type="text" id="node-input-haltifstate">
-  </div>
-  <div class="form-row">
-    <label for="node-input-halt_if_compare">Comparison</label>
-    <select id="node-input-halt_if_compare">
-      <option value="is">=</option>
-      <option value="is_not">≠</option>
-      <option value="lt">&lt;</option>
-      <option value="lte">&lt;=</option>
-      <option value="gt">&gt;</option>
-      <option value="gte">&gt;=</option>
-    </select>
-    <select id="node-input-halt_if_type">
-      <option value="str">String</option>
-      <option value="num">Number</option>
-      <option value="bool">Boolean</option>
-    </select>
-  </div>
-  <div class="form-row">
-    <label for="node-input-for"><i class="fa fa-clock-o"></i> For</label>
-    <input type="number" id="node-input-for" style="width: 100px;">
-    <select id="node-input-forUnits">
-      <option value="seconds">seconds</option>
-      <option value="minutes">minutes</option>
-      <option value="hours">hours</option>
-    </select>
-  </div>
-</script>
+  <input type="hidden" id="node-input-version" />
+  <input type="hidden" id="node-input-outputs" />
 
-<script type="text/x-red" data-help-name="logo-event">
-  <p>This is a replica of the original Home Assistant <code>events: state</code> node UI with a single output.
-  It outputs a single message with <code>msg.payload = true</code> or <code>false</code> based on the condition.</p>
+  <div class="form-row">
+      <label for="node-input-name" data-i18n="server-state-changed.label.name"></label>
+      <input type="text" id="node-input-name" />
+  </div>
+
+  <div class="form-row">
+      <label for="node-input-server" data-i18n="server-state-changed.label.server"></label>
+      <input type="text" id="node-input-server" />
+  </div>
+
+  <div class="form-row">
+      <div id="entity-list"></div>
+  </div>
+
+  <div class="form-row">
+      <label for="node-input-ifState" data-i18n="server-state-changed.label.if_state"></label>
+      <select id="node-input-ifStateOperator" style="width: 20%">
+          <option value="is" data-i18n="server-state-changed.label.if_state_option.is"></option>
+          <option value="is_not" data-i18n="server-state-changed.label.if_state_option.is_not"></option>
+          <option value="lt" data-i18n="server-state-changed.label.if_state_option.less_than"></option>
+          <option value="lte" data-i18n="server-state-changed.label.if_state_option.less_than_or_equal_to"></option>
+          <option value="gt" data-i18n="server-state-changed.label.if_state_option.greater_than"></option>
+          <option value="gte" data-i18n="server-state-changed.label.if_state_option.greater_than_or_equal_to"></option>
+          <option value="includes" data-i18n="server-state-changed.label.if_state_option.includes"></option>
+          <option value="does_not_include" data-i18n="server-state-changed.label.if_state_option.does_not_include"></option>
+          <option value="jsonata" data-i18n="server-state-changed.label.if_state_option.jsonata"></option>
+      </select>
+      <input type="text" id="node-input-ifState" style="width: 50%" />
+      <input type="hidden" id="node-input-ifStateType" />
+  </div>
+
+  <div class="form-row">
+      <label for="node-input-for" data-i18n="server-state-changed.label.for"></label>&nbsp;
+      <div class="ha-multi-item-row">
+          <input type="text" id="node-input-for" />
+          <input type="hidden" id="node-input-forType" />
+          <select id="node-input-forUnits">
+              <option value="milliseconds" data-i18n="server-state-changed.label.for_option.milliseconds"></option>
+              <option value="seconds" data-i18n="server-state-changed.label.for_option.seconds"></option>
+              <option value="minutes" data-i18n="server-state-changed.label.for_option.minutes"></option>
+              <option value="hours" data-i18n="server-state-changed.label.for_option.hours"></option>
+              <option value="days" data-i18n="server-state-changed.label.for_option.days"></option>
+          </select>
+      </div>
+  </div>
+
+  <div class="form-row">
+      <label for="node-input-stateType" data-i18n="server-state-changed.label.state_type"></label>
+      <select type="text" id="node-input-stateType">
+          <option value="str" data-i18n="server-state-changed.label.state_type_option.string"></option>
+          <option value="num" data-i18n="server-state-changed.label.state_type_option.number"></option>
+          <option value="habool" data-i18n="server-state-changed.label.state_type_option.boolean"></option>
+      </select>
+  </div>
+
+  <div class="form-row checkbox-option">
+      <input type="checkbox" id="node-input-outputInitially" />
+      <label for="node-input-outputInitially" data-i18n="server-state-changed.label.output_on_connect"></label>
+  </div>
+
+  <div class="form-row">
+      <p data-i18n="server-state-changed.label.ignore_state_change_event_when"></p>
+      <ul class="ha-ignore-state">
+          <li>
+              <input type="checkbox" id="node-input-ignorePrevStateNull" />
+              <label for="node-input-ignorePrevStateNull" data-i18n="server-state-changed.label.ignore_prev_state_null"></label>
+          </li>
+          <li>
+              <input type="checkbox" id="node-input-ignorePrevStateUnknown" />
+              <label for="node-input-ignorePrevStateUnknown" data-i18n="server-state-changed.label.ignore_prev_state_unknown"></label>
+          </li>
+          <li>
+              <input type="checkbox" id="node-input-ignorePrevStateUnavailable" />
+              <label for="node-input-ignorePrevStateUnavailable" data-i18n="server-state-changed.label.ignore_prev_state_unavailable"></label>
+          </li>
+          <li>
+              <input type="checkbox" id="node-input-ignoreCurrentStateUnknown" />
+              <label for="node-input-ignoreCurrentStateUnknown" data-i18n="server-state-changed.label.ignore_current_state_unknown"></label>
+          </li>
+          <li>
+              <input type="checkbox" id="node-input-ignoreCurrentStateUnavailable" />
+              <label for="node-input-ignoreCurrentStateUnavailable" data-i18n="server-state-changed.label.ignore_current_state_unavailable"></label>
+          </li>
+          <li>
+              <input type="checkbox" id="node-input-outputOnlyOnStateChange" />
+              <label for="node-input-outputOnlyOnStateChange" data-i18n="server-state-changed.label.output_only_on_state_change"></label>
+          </li>
+      </ul>
+  </div>
+
+  <div class="form-row"><ol id="custom-outputs"></ol></div>
+
+  <div class="form-row" id="exposed-as-row">
+      <label for="node-input-exposeAsEntityConfig" data-i18n="ha-tag.label.expose_as"></label>
+      <input type="text" id="node-input-exposeAsEntityConfig" />
+  </div>
 </script>
