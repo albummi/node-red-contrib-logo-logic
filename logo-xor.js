@@ -6,11 +6,7 @@ module.exports = function(RED) {
     makeLogoLogicNode(RED, {
       typeName: "logo-xor",
       displayName: "XOR",
-      computeResult: (inputs) => {
-        // true when exactly one input = true
-        const trues = inputs.reduce((c,v) => c + (v?1:0), 0);
-        return trues === 1;
-      }
+      computeResult: (inputs) => inputs.filter(Boolean).length % 2 === 1
     })
   );
 };
