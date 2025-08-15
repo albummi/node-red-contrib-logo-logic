@@ -20,7 +20,8 @@
       "logo-nand": "logo-nand.js",
       "logo-or": "logo-or.js",
       "logo-xor": "logo-xor.js",
-      "logo-rs": "logo-rs.js"
+      "logo-rs": "logo-rs.js",
+      "logo-event": "logo-event.js"
     }
   },
   "dependencies": {}
