@@ -1,40 +1,93 @@
-<script type="text/javascript">
-    RED.nodes.registerType('logo-event', {
-        category: 'Logo',
-        color: '#E9967A',
-        defaults: {
-            name: { value: "" },
-            entityId: { value: "", required: true },
-            condition: { value: "" }
-        },
-        inputs: 0,
-        outputs: 1,
-        icon: "font-awesome/fa-bolt",
-        label: function () {
-            return this.name || "logo-event";
-        }
-    });
+<script type="text/x-red" data-template-name="logo-event">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+    <input type="text" id="node-input-server">
+  </div>
+  <div class="form-row">
+    <label for="node-input-entityid"><i class="fa fa-tag"></i> Entity ID (String / RegEx)</label>
+    <input type="text" id="node-input-entityid">
+  </div>
+  <div class="form-row">
+    <label for="node-input-outputinitially"><i class="fa fa-power-off"></i> Output on Connect</label>
+    <input type="checkbox" id="node-input-outputinitially">
+  </div>
+  <div class="form-row">
+    <label for="node-input-ifstate"><i class="fa fa-filter"></i> If State (JSONata)</label>
+    <input type="text" id="node-input-ifstate">
+  </div>
+  <div class="form-row">
+    <label for="node-input-for"><i class="fa fa-clock-o"></i> For (duration)</label>
+    <input type="text" id="node-input-for" placeholder="e.g. 5s, 1m">
+  </div>
+  <div class="form-row">
+    <label for="node-input-forunit">Unit</label>
+    <select id="node-input-forunit">
+      <option value="ms">ms</option>
+      <option value="s">s</option>
+      <option value="m">m</option>
+      <option value="h">h</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-state_type"><i class="fa fa-code"></i> State Type</label>
+    <select id="node-input-state_type">
+      <option value="str">String</option>
+      <option value="num">Number</option>
+      <option value="bool">Boolean</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-ignorePrevStateNull">Ignore null previous</label>
+    <input type="checkbox" id="node-input-ignorePrevStateNull">
+  </div>
+  <div class="form-row">
+    <label for="node-input-ignorePrevStateUnknown">Ignore unknown previous</label>
+    <input type="checkbox" id="node-input-ignorePrevStateUnknown">
+  </div>
+  <div class="form-row">
+    <label for="node-input-ignorePrevStateUnavailable">Ignore unavailable previous</label>
+    <input type="checkbox" id="node-input-ignorePrevStateUnavailable">
+  </div>
+  <div class="form-row">
+    <label for="node-input-ignoreCurrentStateUnknown">Ignore unknown current</label>
+    <input type="checkbox" id="node-input-ignoreCurrentStateUnknown">
+  </div>
+  <div class="form-row">
+    <label for="node-input-ignoreCurrentStateUnavailable">Ignore unavailable current</label>
+    <input type="checkbox" id="node-input-ignoreCurrentStateUnavailable">
+  </div>
 </script>
 
-<script type="text/x-red" data-template-name="logo-event">
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-    <div class="form-row">
-        <label for="node-input-entityId"><i class="fa fa-cube"></i> Entity ID</label>
-        <input type="text" id="node-input-entityId" placeholder="z.B. light.wohnzimmer">
-    </div>
-    <div class="form-row">
-        <label for="node-input-condition"><i class="fa fa-filter"></i> Bedingung (optional)</label>
-        <input type="text" id="node-input-condition" placeholder="z.B. on oder true">
-    </div>
+<script type="text/javascript">
+RED.nodes.registerType('logo-event',{
+  category:'function',
+  color:'#FFCC00',
+  inputs:0, outputs:1,
+  icon:'font-awesome/fa-bolt',
+  label: function() {return this.name||'logo-event';},
+  defaults:{
+    name:{value:""},
+    server:{type:"server",required:true},
+    entityid:{value:"",required:true},
+    outputinitially:{value:false},
+    ifstate:{value:""},
+    for:{value:0},
+    forunit:{value:"s"},
+    state_type:{value:"str"},
+    ignorePrevStateNull:{value:false},
+    ignorePrevStateUnknown:{value:false},
+    ignorePrevStateUnavailable:{value:false},
+    ignoreCurrentStateUnknown:{value:false},
+    ignoreCurrentStateUnavailable:{value:false}
+  }
+});
 </script>
 
 <script type="text/x-red" data-help-name="logo-event">
-    <p>Hört auf Zustandsänderungen einer Home Assistant Entity und gibt <code>true</code> oder <code>false</code> als Payload aus.</p>
-    <p>
-        <b>Entity ID:</b> Die ID des Geräts oder Sensors in Home Assistant.<br>
-        <b>Bedingung:</b> Optionaler Wert, gegen den der Zustand verglichen wird.
-    </p>
+  <p>This node triggers when the state of an entity changes in Home Assistant.</p>
+  <p>The output is a single message with <code>payload true/false</code> depending on conditions.</p>
 </script>
