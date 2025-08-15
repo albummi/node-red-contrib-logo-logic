@@ -15,58 +15,48 @@
   </div>
 
   <div class="form-row">
-    <label><i class="fa fa-exchange"></i> Eingänge konfigurieren (Feld & Wert)</label>
-    <div id="inputs-config-container"></div>
+    <label><i class="fa fa-exchange"></i> Eingangs-Topics (msg.topic)</label>
+    <div id="topics-container"></div>
   </div>
 
   <div class="form-tips">
-    Eingänge werden geprüft, indem für jeden Eingang das gewählte msg-Feld (msg.payload/msg.topic/msg.logo) mit dem konfigurierten Wert verglichen wird.
+    Adressiere jeden Eingang über einen konfigurierten <code>msg.topic</code>-Wert. 
+    <br>Reset: <code>msg.reset = true</code>
   </div>
 </script>
 
 <script type="text/x-red" data-help-name="logo-or">
-  <p>LOGO-Style OR-Gatter mit konfigurierbaren Eingangsquellen.</p>
+  <p>LOGO-Style OR mit konfigurierten <code>msg.topic</code> je Eingang und Negierung.</p>
 </script>
 
 <script type="text/javascript">
 (function() {
-  // reuse same buildInputsUI from logo-and
-  function buildInputsUI(count, cfgFields, cfgValues, cfgNegs) {
-    const container = $("#inputs-config-container");
-    container.empty();
+  function buildUI(count, topics, negs) {
+    const c = $("#topics-container");
+    c.empty();
     for (let i = 0; i < count; i++) {
-      const fieldVal = (cfgFields && cfgFields[i]) ? cfgFields[i] : "payload";
-      const cmpVal = (cfgValues && cfgValues[i] !== undefined) ? cfgValues[i] : "";
-      const neg = (cfgNegs && cfgNegs[i]) ? "checked" : "";
-
-      const html = `
-        <div class="form-row input-config-row" data-idx="${i}">
-          <label style="width:120px">Eingang ${i+1}</label>
-          <select class="input-field-select" data-idx="${i}">
-            <option value="payload">msg.payload</option>
-            <option value="topic">msg.topic</option>
-            <option value="logo">msg.logo</option>
-          </select>
-          <input type="text" class="input-value" data-idx="${i}" placeholder="Vergleichswert" value="${$('<div/>').text(cmpVal).html()}">
-          <label style="margin-left:8px"><input type="checkbox" class="negate-flag" data-idx="${i}" ${neg}> Negieren</label>
-        </div>
-      `;
-      container.append(html);
-      container.find(`.input-field-select[data-idx="${i}"]`).val(fieldVal);
+      const tv = (topics && topics[i]) ? topics[i] : "";
+      const ng = (negs && negs[i]) ? "checked" : "";
+      c.append(
+        `<div class="form-row" data-idx="${i}">
+          <label>E${i+1}</label>
+          <input type="text" class="topic-val" data-idx="${i}" placeholder="z.B. Keks" value="${$('<div/>').text(tv).html()}">
+          <label style="margin-left:8px"><input type="checkbox" class="negate-flag" data-idx="${i}" ${ng}> Negieren</label>
+        </div>`
+      );
     }
   }
 
   RED.nodes.registerType('logo-or', {
     category: 'function',
-    color: '#FFCC00',
+    color: '#27AE60',
     icon: 'font-awesome/fa-cogs',
     defaults: {
       name: { value: "" },
       inputsCount: { value: 2, required: true, validate: v => v >= 2 && v <= 8 },
-      inputFields: { value: [] },
-      inputValues: { value: [] },
-      negateInputs: { value: [] },
-      emitOnChange: { value: true }
+      emitOnChange: { value: true },
+      topicValues: { value: [] },
+      negateInputs: { value: [] }
     },
     inputs: 1,
     outputs: 1,
@@ -74,26 +64,26 @@
     oneditprepare: function() {
       const self = this;
       const countEl = $("#node-input-inputsCount");
-      buildInputsUI(parseInt(countEl.val(),10) || 2, self.inputFields || [], self.inputValues || [], self.negateInputs || []);
+      const initCount = Math.max(2, Math.min(8, parseInt(countEl.val(), 10) || 2));
+      buildUI(initCount, self.topicValues, self.negateInputs);
       countEl.on("change", function() {
-        const c = Math.max(2, Math.min(8, parseInt($(this).val(),10) || 2));
-        buildInputsUI(c, self.inputFields || [], self.inputValues || [], self.negateInputs || []);
+        const c = Math.max(2, Math.min(8, parseInt($(this).val(), 10) || 2));
+        buildUI(c, self.topicValues, self.negateInputs);
       });
     },
     oneditsave: function() {
-      const count = Math.max(2, Math.min(8, parseInt($("#node-input-inputsCount").val(),10) || 2));
-      const fields = new Array(count).fill("payload");
-      const values = new Array(count).fill("");
-      const negs = new Array(count).fill(false);
-      $(".input-config-row").each(function() {
-        const idx = parseInt($(this).attr("data-idx"),10);
-        if (isNaN(idx) || idx < 0 || idx >= count) return;
-        fields[idx] = $(this).find(".input-field-select").val();
-        values[idx] = $(this).find(".input-value").val();
-        negs[idx] = $(this).find(".negate-flag").is(":checked");
+      const count = Math.max(2, Math.min(8, parseInt($("#node-input-inputsCount").val(), 10) || 2));
+      const topics = Array(count).fill("");
+      const negs = Array(count).fill(false);
+      $(".topic-val").each(function() {
+        const idx = parseInt($(this).data("idx"), 10);
+        if (!isNaN(idx) && idx < count) topics[idx] = $(this).val();
       });
-      this.inputFields = fields;
-      this.inputValues = values;
+      $(".negate-flag").each(function() {
+        const idx = parseInt($(this).data("idx"), 10);
+        if (!isNaN(idx) && idx < count) negs[idx] = $(this).is(":checked");
+      });
+      this.topicValues = topics;
       this.negateInputs = negs;
     }
   });

@@ -6,7 +6,7 @@ module.exports = function(RED) {
     makeLogoLogicNode(RED, {
       typeName: "logo-nand",
       displayName: "NAND",
-      computeResult: (inputs) => !(inputs.every(Boolean))
+      computeResult: (inputs) => !inputs.every(Boolean)
     })
   );
 };
