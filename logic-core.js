@@ -1,3 +1,9 @@
+// Gemeinsamer Core für LOGO-Gatter: Adressierung per msg.topic (konfigurierter String)
+// Setzt den Zustand eines Eingangs, wenn eine Nachricht mit passendem msg.topic kommt.
+// Der Zustand wird auf den Boolean-Wert von msg.payload gesetzt.
+// Reset mit msg.reset === true löscht alle Eingänge (false).
+// Keine Latch/Persistenz – der Ausgang ist stets die Logik über die aktuellen Zustände.
+
 module.exports = function makeLogoLogicNode(RED, { typeName, displayName, computeResult }) {
   return function(config) {
     RED.nodes.createNode(this, config);
@@ -5,28 +11,36 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
 
     const inputsCount = Math.max(2, Math.min(8, parseInt(config.inputsCount || 2, 10)));
     const emitOnChange = config.emitOnChange !== false;
-    const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.slice(0, inputsCount) : new Array(inputsCount).fill(false);
-    const topicValues = Array.isArray(config.topicValues) ? config.topicValues.slice(0, inputsCount) : new Array(inputsCount).fill("");
+
+    // Konfig: erwartete Topics & Negation je Eingang
+    const topicValues = Array.isArray(config.topicValues) ? config.topicValues.slice(0, inputsCount) : [];
+    const negateInputs = Array.isArray(config.negateInputs) ? config.negateInputs.slice(0, inputsCount) : [];
 
     while (topicValues.length < inputsCount) topicValues.push("");
     while (negateInputs.length < inputsCount) negateInputs.push(false);
 
+    // Aktuelle Zustände der Eingänge (false als Default)
+    let states = Array(inputsCount).fill(false);
     let lastOutput;
 
-    function evaluateFromMsg(msg) {
-      const evalInputs = [];
-      for (let i = 0; i < inputsCount; i++) {
-        const expected = topicValues[i];
-        const actual = msg.topic;
-        let match = (actual !== undefined && String(actual) === expected);
-        if (negateInputs[i]) match = !match;
-        evalInputs.push(match);
+    function toBool(v) {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v !== 0;
+      if (typeof v === "string") {
+        const s = v.trim().toLowerCase();
+        if (["true","on","1","open","hoch","an","yes","y"].includes(s)) return true;
+        if (["false","off","0","closed","zu","aus","no","n"].includes(s)) return false;
       }
-      return evalInputs;
+      return !!v;
     }
 
-    function updateStatus(result, states) {
-      const active = states.filter(s => s).length;
+    function evaluate() {
+      const evalInputs = states.map((v, i) => (negateInputs[i] ? !v : v));
+      return computeResult(evalInputs);
+    }
+
+    function updateStatus(result) {
+      const active = states.reduce((a,v)=>a+(v?1:0),0);
       node.status({
         fill: result ? "green" : "grey",
         shape: "dot",
@@ -34,7 +48,7 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
       });
     }
 
-    function emit(result, states) {
+    function emit(result) {
       if (emitOnChange) {
         if (lastOutput !== result) {
           lastOutput = result;
@@ -44,14 +58,33 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
         lastOutput = result;
         node.send({ payload: result });
       }
-      updateStatus(result, states);
+      updateStatus(result);
     }
 
     node.on("input", (msg, send, done) => {
       try {
-        const evalInputs = evaluateFromMsg(msg);
-        const result = computeResult(evalInputs);
-        emit(result, evalInputs);
+        // globaler Reset
+        if (msg && msg.reset === true) {
+          states = Array(inputsCount).fill(false);
+          emit(false);
+          if (done) done();
+          return;
+        }
+
+        // Eingang anhand msg.topic finden
+        const t = (msg && msg.topic != null) ? String(msg.topic) : undefined;
+        if (t != null) {
+          const idx = topicValues.findIndex(tv => String(tv) === t);
+          if (idx >= 0 && idx < inputsCount) {
+            // Diesen Eingang auf Wert von payload setzen
+            states[idx] = toBool(msg.payload);
+          }
+          // (andere, nicht gemappte msg.topic werden ignoriert)
+        }
+
+        // Ergebnis berechnen und ausgeben
+        const result = evaluate();
+        emit(result);
         if (done) done();
       } catch (e) {
         node.error(e, msg);
@@ -59,6 +92,7 @@ module.exports = function makeLogoLogicNode(RED, { typeName, displayName, comput
       }
     });
 
-    updateStatus(false, new Array(inputsCount).fill(false));
+    // Initialstatus
+    updateStatus(false);
   };
 };
