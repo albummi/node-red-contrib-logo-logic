@@ -1,55 +1,100 @@
 <script type="text/x-red" data-template-name="logo-and">
-  <div class="form-row"><label><i class="fa fa-tag"></i> Name</label><input type="text" id="node-input-name" placeholder="LOGO AND"></div>
-  <div class="form-row"><label for="node-input-inputsCount"><i class="fa fa-sign-in"></i> Anzahl Eingänge</label><input type="number" id="node-input-inputsCount" min="2" max="8"></div>
-  <div class="form-row"><label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label><input type="checkbox" id="node-input-emitOnChange" checked></div>
-  <div class="form-row"><label><i class="fa fa-exchange"></i> Eingangs-Topics</label><div id="topics-container"></div></div>
-  <script type="text/javascript">
-  (function() {
-    function buildInputs(count, values, negs) {
-      const c = $("#topics-container");
-      c.empty();
-      for(let i=0;i<count;i++) {
-        const val = values[i]||"";
-        const neg = negs[i] ? "checked" : "";
-        c.append(`<div class="form-row" data-idx="${i}">
-          <label>Eingang ${i+1}</label>
-          <input type="text" class="topic-val" data-idx="${i}" placeholder="msg.topic == ?" value="${$('<div/>').text(val).html()}">
-          <label style="margin-left:8px"><input type="checkbox" class="negate-flag" data-idx="${i}" ${neg}> Negieren</label>
-        </div>`);
-      }
-    }
-    RED.nodes.registerType('logo-and', {
-      category: 'function', color: '#FFCC00', icon: 'font-awesome/fa-cogs',
-      defaults: {
-        name:{value:""}, inputsCount:{value:2,required:true,validate:v=>v>=2&&v<=8},
-        topicValues:{value:[]}, negateInputs:{value:[]}, emitOnChange:{value:true}
-      },
-      inputs:1,outputs:1, label: function(){return this.name||"LOGO AND";},
-      oneditprepare: function(){
-        const self=this;
-        buildInputs(parseInt($("#node-input-inputsCount").val(),10)||2, self.topicValues, self.negateInputs);
-        $("#node-input-inputsCount").on("change",()=>{
-          buildInputs(Math.max(2,Math.min(8,parseInt($("#node-input-inputsCount").val(),10)||2)), self.topicValues, self.negateInputs);
-        });
-      },
-      oneditsave: function(){
-        const count = Math.max(2,Math.min(8,parseInt($("#node-input-inputsCount").val(),10)||2));
-        const vals = Array(count).fill("");
-        const negs = Array(count).fill(false);
-        $(".topic-val").each(function(){
-          const idx = parseInt($(this).data("idx"),10);
-          if(idx>=0&&idx<count) vals[idx] = $(this).val();
-        });
-        $(".negate-flag").each(function(){
-          const idx = parseInt($(this).data("idx"),10);
-          if(idx>=0&&idx<count) negs[idx] = $(this).is(":checked");
-        });
-        this.topicValues = vals; this.negateInputs = negs;
-      }
-    });
-  })();
-  </script>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="LOGO AND">
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-inputsCount"><i class="fa fa-sign-in"></i> Anzahl Eingänge</label>
+    <input type="number" id="node-input-inputsCount" min="2" max="8">
+  </div>
+
+  <div class="form-row">
+    <label><i class="fa fa-bolt"></i> Nur bei Zustandsänderung senden</label>
+    <input type="checkbox" id="node-input-emitOnChange" checked>
+  </div>
+
+  <div class="form-row">
+    <label><i class="fa fa-exchange"></i> Eingangs-Topics (msg.topic)</label>
+    <div id="topics-container"></div>
+  </div>
+
+  <div class="form-tips">
+    Jeder Eingang wird über einen konfigurierten <code>msg.topic</code>-Wert adressiert.
+    Der Eingangszustand folgt dem Boolean von <code>msg.payload</code>. 
+    <br>Beispiel: <code>{ topic: "Wurst", payload: true }</code> setzt den zugeordneten Eingang auf <code>true</code>.
+    <br>Reset: <code>msg.reset = true</code>
+  </div>
 </script>
+
 <script type="text/x-red" data-help-name="logo-and">
-  <p>AND-Gate: erlaubt per Eingang msg.topic festzulegen. Wird deaktiviert sobald msg.topic nicht mehr passt.</p>
+  <p>LOGO-Style AND mit konfigurierbaren Eingängen über <code>msg.topic</code> und Negierung je Eingang.</p>
+  <ul>
+    <li><b>Anzahl Eingänge:</b> 2–8</li>
+    <li><b>Adressierung:</b> pro Eingang ein erwarteter <code>msg.topic</code>-String</li>
+    <li><b>Wert:</b> <code>msg.payload</code> wird zu Boolean konvertiert (true/false)</li>
+    <li><b>Negierung:</b> pro Eingang invertierbar</li>
+    <li><b>Reset:</b> <code>msg.reset = true</code> setzt alle Eingänge auf false</li>
+  </ul>
+</script>
+
+<script type="text/javascript">
+(function() {
+  function buildUI(count, topics, negs) {
+    const c = $("#topics-container");
+    c.empty();
+    for (let i = 0; i < count; i++) {
+      const tv = (topics && topics[i]) ? topics[i] : "";
+      const ng = (negs && negs[i]) ? "checked" : "";
+      c.append(
+        `<div class="form-row" data-idx="${i}">
+          <label for="topic-${i}">E${i+1}</label>
+          <input type="text" id="topic-${i}" class="topic-val" data-idx="${i}" placeholder="z.B. Wurst" value="${$('<div/>').text(tv).html()}">
+          <label style="margin-left:8px"><input type="checkbox" class="negate-flag" data-idx="${i}" ${ng}> Negieren</label>
+        </div>`
+      );
+    }
+  }
+
+  RED.nodes.registerType('logo-and', {
+    category: 'function',
+    color: '#FFCC00',
+    icon: 'font-awesome/fa-cogs',
+    defaults: {
+      name: { value: "" },
+      inputsCount: { value: 2, required: true, validate: v => v >= 2 && v <= 8 },
+      emitOnChange: { value: true },
+      topicValues: { value: [] },
+      negateInputs: { value: [] }
+    },
+    inputs: 1,
+    outputs: 1,
+    label: function() { return this.name || "LOGO AND"; },
+    oneditprepare: function() {
+      const self = this;
+      const countEl = $("#node-input-inputsCount");
+      const initCount = Math.max(2, Math.min(8, parseInt(countEl.val(), 10) || 2));
+      buildUI(initCount, self.topicValues, self.negateInputs);
+      countEl.on("change", function() {
+        const c = Math.max(2, Math.min(8, parseInt($(this).val(), 10) || 2));
+        buildUI(c, self.topicValues, self.negateInputs);
+      });
+    },
+    oneditsave: function() {
+      const count = Math.max(2, Math.min(8, parseInt($("#node-input-inputsCount").val(), 10) || 2));
+      const topics = Array(count).fill("");
+      const negs = Array(count).fill(false);
+      $(".topic-val").each(function() {
+        const idx = parseInt($(this).data("idx"), 10);
+        if (!isNaN(idx) && idx < count) topics[idx] = $(this).val();
+      });
+      $(".negate-flag").each(function() {
+        const idx = parseInt($(this).data("idx"), 10);
+        if (!isNaN(idx) && idx < count) negs[idx] = $(this).is(":checked");
+      });
+      this.topicValues = topics;
+      this.negateInputs = negs;
+    }
+  });
+})();
 </script>
